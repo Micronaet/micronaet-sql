@@ -25,7 +25,7 @@ import logging
 import openerp
 import openerp.netsvc as netsvc
 import openerp.addons.decimal_precision as dp
-from openerp.osv import fields, osv, expression, orm
+from openerp.osv import fields, osv, expression
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from openerp import SUPERUSER_ID, api
@@ -39,8 +39,6 @@ from openerp.tools import (DEFAULT_SERVER_DATE_FORMAT,
 
 
 _logger = logging.getLogger(__name__)
-
-
 
 class product_product(orm.Model):
     ''' Add extra parent field for product
