@@ -1,0 +1,111 @@
+<?xml version="1.0" ?>
+<openerp>
+  <data>
+
+    <record model="ir.ui.view" id="view_partner_form_address">
+            <field name="name">res.partner.address</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//label[@for='is_company']" position="after">
+                    <field name="is_address"/>
+                    <label for="is_address" string="Is an Address?"/>
+                </xpath>
+                <field name="parent_id" position="replace">
+                    <field name="parent_id"
+                            placeholder="Company"
+                            domain="[('is_company', '=', True)]" context="{'default_is_company': True}"
+                            attrs="{'invisible': ['&amp;',('is_company','=', True),('is_address','=',False)], 'required': [('is_address','=',True)]}"
+                            on_change="onchange_address(use_parent_address, parent_id)"/>
+                </field>
+                <xpath expr="//label[@for='type']" position="replace">
+                    <label for="type" attrs="{'invisible': [('is_address','=', False)]}"/>
+                </xpath>
+                <xpath expr="//div[@name='div_type']" position="replace">
+                    <div attrs="{'invisible': [('is_address','=', False)]}" name="div_type">
+                        <field class="oe_inline" name="type"/>
+                        <label for="use_parent_address" class="oe_edit_only"/>
+                        <field name="use_parent_address" class="oe_edit_only oe_inline"
+                                    on_change="onchange_address(use_parent_address, parent_id)"/>
+                    </div>
+                </xpath>
+                <xpath expr="//page[@string='Contacts']" position="after">
+                    <page string="Addresses" attrs="{'invisible': [('is_company','=',False)]}">
+                            <field name="address_ids" context="{'default_parent_id': active_id, 'default_is_address':1, 'default_name': name}" mode="tree">
+                                <tree string="Addresses" version="7.0">
+                                    <field name="name" string="Contact Person"/>
+                                    <field name="type"/>
+                                    <field name="street"/>
+                                    <field name="street2"/>
+                                    <field name="zip"/>
+                                    <field name="city"/>
+                                    <field name="state_id"/>
+                                    <field name="country_id"/>
+                                </tree>
+                            </field>
+                        </page>
+                </xpath>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_partner_filter_address">
+            <field name="name">res.partner.address.filter</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_res_partner_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//filter[@name='type_company']" position="after">
+                    <filter string="Addresses" name="type_address" icon="terp-partner" domain="[('is_address','=',1)]"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_partner_tree_address">
+            <field name="name">res.partner.address.tree</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_tree"/>
+            <field name="arch" type="xml">
+                <field name="display_name" position="after">
+                    <field name="type"/>
+                </field>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="view_partner_kanban_address">
+            <field name="name">res.partner.address.kanban</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.res_partner_kanban_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//kanban/field[@name='has_image']" position="after">
+                    <field name="type"/>
+                    <field name="is_address"/>
+                </xpath>
+                <xpath expr="//div[@class='oe_kanban_partner_categories']" position="before">
+                    <t t-if="record.is_address.raw_value === true">
+                        <field name="type"/>
+                    </t>
+                </xpath>
+                <xpath expr="//a[@type='open']" position="replace">
+                    <a type="open">
+                        <t t-if="record.has_image.raw_value === true">
+                            <img t-att-src="kanban_image('res.partner', 'image_small', record.id.value)" class="oe_kanban_image"/>
+                        </t>
+                        <t t-if="record.has_image.raw_value === false">
+                            <t t-if="record.is_company.raw_value === true and record.is_address.raw_value === false">
+                                <img t-att-src='_s + "/base/static/src/img/company_image.png"' class="oe_kanban_image"/>
+                            </t>
+                            <t t-if="record.is_company.raw_value === false and record.is_address.raw_value === false">
+                                <img t-att-src='_s + "/base/static/src/img/avatar.png"' class="oe_kanban_image"/>
+                            </t>
+                            <t t-if="record.is_address.raw_value === true">
+                                <img t-att-src='_s + "/partner_addresses/static/src/img/address.png"' class="oe_kanban_image"/>
+                            </t>
+                        </t>
+                    </a>
+                </xpath>
+            </field>
+        </record>
+
+  </data>
+</openerp>
+
+

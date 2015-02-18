@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+   <data>
+        <record id="group_SQL_manager" model="res.groups">
+            <field name="name">SQL / Mananger</field>
+        </record>
+        <record id="group_SQL_user" model="res.groups">
+            <field name="name">SQL / User</field>
+        </record>
+   </data>
+</openerp>        

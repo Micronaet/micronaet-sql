@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<openerp>
+<data>
+    <record model="ir.ui.view" id="view_prodct_product_statistic_form">
+        <field name="name">product.product.statistic.form</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <field name="default_code" position="after">
+                <field name="statistic_category" />
+            </field>
+        </field>
+    </record>
+    <menuitem name="Product" parent="base_mssql.menu_sql_anagraphic" id="menu_sql_anagraphic_product" action="product.product_normal_action_sell" sequence="20" />
+</data>
+</openerp>
+

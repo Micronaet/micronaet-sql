@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+    <!--res.company--> 
+    <record model="ir.ui.view" id="res_company_form_view">
+        <field name="name">Company MS SQL</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form" />
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet/notebook/page[@string='General Information']" position="after">
+			    <page string="MS SQL connection">
+			        <group colspan="4" col="4">
+			           <field name="mssql_type" string="Type of server" />
+			           <field name="mssql_host" string="Host"/>
+			           <field name="mssql_port" string="Port" />
+			           <field name="mssql_username" string="Username" />
+			           <field name="mssql_password" password="1" string="Password"/>
+			           <field name="mssql_database" string="Database" />
+			           <field name="capital_name" />
+			           <button name="test_database_connection" string="Test connection" type="object" class="oe_highlight"/>
+			        </group>
+			    </page>                
+            </xpath>
+        </field>
+    </record>    
+
+    <menuitem name="SQL" id="menu_sql_root" sequence="10" groups="base_mssql.group_SQL_manager,base_mssql.group_SQL_user"/>    
+        <menuitem name="Anagraphic" id="menu_sql_anagraphic" parent="menu_sql_root" sequence="5" />  
+    
+    </data>
+</openerp>    
+    

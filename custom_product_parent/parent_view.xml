@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+        <!--<record model="ir.ui.view" id="view_account_invoice_report_extra_search">
+            <field name="name">Invoice extra search</field>
+            <field name="model">account.invoice.report</field>
+            <field name="inherit_id" ref="account.view_account_invoice_report_search" />
+            <field name="arch" type="xml">
+                <field name="partner_id" position="after">
+                    <field name="parent_code" />
+                    <field name="grand_parent_code" />
+                </field>
+                <filter string="Product" position="after">
+                    <filter string="Parent product" icon="terp-accessories-archiver" context="{'group_by':'parent_product_code','set_visible':True,'residual_invisible':True}"/>
+                    <filter string="Grandparent product" icon="terp-accessories-archiver" context="{'group_by':'grand_parent_product_code','set_visible':True,'residual_invisible':True}"/>
+                </filter>
+            </field>
+        </record>-->
+
+    </data>
+</openerp>    
+    
