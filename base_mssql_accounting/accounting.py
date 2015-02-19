@@ -238,13 +238,16 @@ class micronaet_accounting(orm.Model):
         '''
         return record['IFL_ART_CANC'] == 'N' and record['IFL_ART_ANN'] == 'N'
         
-    def get_product(self, cr, uid, active=True, write_date_from=False, write_date_to=False, create_date_from=False, create_date_to=False, context=None):
+    def get_product(self, cr, uid, active=True, write_date_from=False, 
+            write_date_to=False, create_date_from=False, create_date_to=False, 
+            context=None):
         ''' Access to anagrafic table of product and return dictionary read
             only active product
             Table: AR_ANAGRAFICHE
             Where clause: active, from_date, to_date
         '''
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context = context):
             table = "AR_ANAGRAFICHE" 
         else:
             table = "ar_anagrafiche"
@@ -254,7 +257,8 @@ class micronaet_accounting(orm.Model):
         # Compose where clause:
         where_clause = ""
         if active: 
-            where_clause += "%s IFL_ART_CANC='N' AND IFL_ART_ANN='N' " % ("AND" if where_clause else "")
+            where_clause += "%s IFL_ART_CANC='N' AND IFL_ART_ANN='N' " % (
+                "AND" if where_clause else "")
             
         if create_date_from:
             where_clause += "%s DTT_CRE >= '%s' " % ("AND" if where_clause else "", create_date_from)
@@ -271,7 +275,7 @@ class micronaet_accounting(orm.Model):
                 """SELECT CKY_ART, IST_ART, CDS_ART, CSG_ART_ALT, CSG_UNIMIS_PRI, 
                           NMP_COSTD, CDS_AGGIUN_ART, NMP_UCA, IFL_ART_DBP, IFL_ART_CANC, 
                           IFL_ART_ANN, CKY_CAT_STAT_ART, NKY_CAT_STAT_ART, CKY_CNT_FOR_AB,
-                          DTT_CRE 
+                          NKY_STRUTT_ART, DTT_CRE 
                    FROM %s %s;""" % (table, "WHERE %s" % (where_clause) if where_clause else "")
             )
             
@@ -283,7 +287,8 @@ class micronaet_accounting(orm.Model):
     def get_product_quantity(self, cr, uid, store, year, context=None):
         ''' Return quantity element for product
             Table: AQ_QUANTITA
-            CKY_ART NKY_DEP NDT_ANNO NQT_INV NQT_CAR NQT_SCAR NQT_ORD_FOR NQT_ORD_CLI NQT_SOSP_CLI NQT_CLI_AUT NQT_INPR  
+            CKY_ART NKY_DEP NDT_ANNO NQT_INV NQT_CAR NQT_SCAR 
+            NQT_ORD_FOR NQT_ORD_CLI NQT_SOSP_CLI NQT_CLI_AUT NQT_INPR  
         '''
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
             table = "AQ_QUANTITA" 

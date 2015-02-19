@@ -48,7 +48,10 @@ class product_product(orm.Model):
     
     _columns = {
         'sql_import': fields.boolean('SQL import', required=False),
-        'statistic_category': fields.char('Statistic category', size=10, required=False, readonly=False),
+        'accounting_structured': fields.char('Accounting structured'),
+        'statistic_category': fields.char(
+            'Statistic category', size=10, 
+            required=False, readonly=False),
     }
     
     _defaults = {
@@ -60,7 +63,7 @@ class product_product(orm.Model):
         ''' Return product_id read from the import code passed
             (all product also pre-deleted
         '''
-        product_ids = self.search(cr, uid, [('default_code', '=', code),])
+        product_ids = self.search(cr, uid, [('default_code', '=', code), ])
 
         if product_ids:
             return product_ids[0]
@@ -71,7 +74,7 @@ class product_product(orm.Model):
         '''
         product_id = self.search(cr, uid, [('id', '=', item_id),])
         if product_id:
-            product_browse = self.search(cr, uid, product_id, context = context)
+            product_browse = self.search(cr, uid, product_id, context=context)
             return not product_browse[0].not_analysis
 
         return True #False # Jump line with product not found
@@ -79,8 +82,10 @@ class product_product(orm.Model):
     # -------------------------------------------------------------------------
     #                                  Scheduled action
     # -------------------------------------------------------------------------
-    def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, write_date_from=False, write_date_to=False, create_date_from=False, create_date_to=False, context=None):
-        ''' Import product from external DB
+    def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, 
+            write_date_from=False, write_date_to=False, create_date_from=False,
+            create_date_to=False, context=None):
+        ''' Import product from external SQL DB
         '''
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
@@ -106,10 +111,12 @@ class product_product(orm.Model):
                         'default_code': record['CKY_ART'],
                         'sql_import': True,
                         'active': True,
+                        'accounting_structured': record['NKY_STRUTT_ART'],
                         'statistic_category': "%s%s" % (
                             record['CKY_CAT_STAT_ART'] or '', 
                             "%02d" % int(
-                                record['NKY_CAT_STAT_ART'] or '0') if record['CKY_CAT_STAT_ART'] else '',
+                                record['NKY_CAT_STAT_ART'] or '0') if record[
+                                    'CKY_CAT_STAT_ART'] else '',
                         ),
                     }
                     if accounting_pool.is_active(record):

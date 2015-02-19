@@ -25,6 +25,7 @@
 
                     <group expand="1" string="Group By...">
                         <!--<filter name="group_partner" string="Partner" icon="terp-partner" context="{'group_by':'partner_id'}"/>-->
+                        <filter name="group_order" string="Order" icon="terp-accessories-archiver" context="{'group_by':'order_id'}"/>
                         <filter name="group_product" string="Product" icon="terp-accessories-archiver" context="{'group_by':'product_id'}"/>
                         <filter name="group_deadline" string="Deadline" icon="terp-accessories-archiver" context="{'group_by':'date_deadline'}"/>
                     </group>                    
@@ -37,18 +38,14 @@
         <field name="priority" eval="20"/>
         <field name="arch" type="xml">
             <tree string="OC line"><!-- colors="red:accounting_state=='deleted';black:mandatory_delivery;blue:mrp_production_id;green:to_produce==False">-->
-                    <field name="production_line" invisible="1" />
                     <field name="name" />
                     <field name="product_id" />                    
-                    <!--<field name="duelist_uncovered" invisible="1" <field name="partner_id" />/>
-                    <button name="button_duelist_uncovered" type="object" string="uncovered present" icon="gtk-dialog-error" attrs="{'invisible':[('duelist_uncovered','=',False)]}" />-->
                     <field name="order_id" />                   
-                    <field name="state_info" />                                    
                     <field name="date_deadline" />                    
                     <field name="product_uom" />
                     <field name="product_uom_qty" sum="Total" />
-                    <field name="state" invisible="1" />
                     <field name="accounting_state" />                    
+                    <field name="state" invisible="1"/>
             </tree>
         </field>
     </record>
@@ -72,10 +69,8 @@
 
                     <separator string="Description:" colspan="4" />
                     <field name="name"  />
+                    <field name="state" invisible="1"/>
 
-                    <!--<separator string="Production:" colspan="4" />
-                    <field name="mrp_production_id" domain="[('product_id','=',product_id)]" readonly="1"/> 
-                    <button name="%(action_assign_mrp_production_wizard_form)d" string="Assign lavoration" type="action" context="{'product_id':product_id}"/>-->
                 </group>   
                 <group>
                   <separator string="Note" colspan="4"/>
@@ -84,5 +79,16 @@
             </form>
         </field>
     </record>
+
+    <record model="ir.actions.act_window" id="action_view_sale_order_line">
+        <field name="name">Sale order line</field>
+        <field name="res_model">sale.order.line</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_sale_order_line_search"/>
+        <field name="view_id" ref="view_sale_order_line_tree"/>
+        <field name="domain"></field>
+        <field name="context">{'form_view_ref':'sql_sale_order.view_sale_order_line_form'}</field>
+    </record>    
     </data>
 </openerp>    
