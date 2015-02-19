@@ -48,7 +48,7 @@ class product_product(orm.Model):
     
     _columns = {
         'sql_import': fields.boolean('SQL import', required=False),
-        'accounting_structured': fields.char('Accounting structured'),
+        'accounting_structured': fields.char('Accounting structured', size=2),
         'statistic_category': fields.char(
             'Statistic category', size=10, 
             required=False, readonly=False),
