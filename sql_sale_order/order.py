@@ -42,8 +42,8 @@ from utility import *
 _logger = logging.getLogger(__name__)
 
 class sale_order_sql(osv.osv):
-    ''' Update basic obiect for import accounting elements
-    '''
+    """Update basic obiect for import accounting elements
+    """
 
     _name = "sale.order"
     _inherit = "sale.order"
@@ -63,8 +63,9 @@ class sale_order_sql(osv.osv):
     #                                 Scheduled action
     # -------------------------------------------------------------------------
     def schedule_etl_sale_order(self, cr, uid, context=None):
-        ''' Import OC and create sale.order
-        '''
+        """Import OC and create sale.order
+        """
+        
         _logger.info("Start import OC header")
         query_pool = self.pool.get('micronaet.accounting')
         empty_date = query_pool.get_empty_date()
@@ -74,21 +75,22 @@ class sale_order_sql(osv.osv):
         #                                 Utility
         # ---------------------------------------------------------------------
         def get_oc_key(record):
-            ''' Compose and return key for OC
-            '''
+            """ Compose and return key for OC
+            """
             return (
                 record['CSG_DOC'].strip(),
                 record['NGB_SR_DOC'],
                 record['NGL_DOC'],
-            )
+                )
 
         # ---------------------------------------------------------------------
         #                               IMPORT HEADER
         # ---------------------------------------------------------------------
         # Operation for manage deletion:
         order_ids = self.search(cr, uid, [
-            ('accounting_order', '=', True)
-            ('accounting_state', 'not in', ('close'))])
+            ('accounting_order', '=', True),
+            ('accounting_state', 'not in', ('close', )),
+            ], context=context)
         updated_ids = []
 
         # Start importation from SQL:
@@ -107,7 +109,8 @@ class sale_order_sql(osv.osv):
                     )
                 oc_id = self.search(cr, uid, [
                     ('name', '=', name),
-                    ('accounting_order', '=', True)], context=context)
+                    ('accounting_order', '=', True)
+                    ], context=context)
                 if oc_id:
                     # --------------------
                     # Update header order:
@@ -122,6 +125,7 @@ class sale_order_sql(osv.osv):
                     #   1. partner not the same,
                     #   2. deadline changed (see in the line for value),
                     #   3. record deleted (after)
+                    
                     # TODO:
                     header = {}
                     if header: # not working for now, decide if is necessary
@@ -173,7 +177,7 @@ class sale_order_sql(osv.osv):
                         'partner_id': partner_id,
                         'user_id': uid,
                         'note': oc['CDS_NOTE'].strip(), # Terms and conditions
-                        'invoice_quantity': 'order', # order procurement
+                        #'invoice_quantity': 'order', # order procurement
                         'pricelist_id':
                             partner_proxy.property_product_pricelist.id if
                                 partner_proxy else 1,  # TODO put default!
@@ -228,7 +232,7 @@ class sale_order_sql(osv.osv):
                 ol.product_id.id,    # product_id
                 ol.date_deadline,    # deadline
                 ol.product_uom_qty], # q.
-            )
+                )
 
         cr_oc_line = query_pool.get_oc_line(cr, uid, context=context)
         if not cr_oc_line:
@@ -285,9 +289,9 @@ class sale_order_sql(osv.osv):
                         (6, 0, [product_browse.taxes_id[0].id, ])
                         ] if product_browse and product_browse.taxes_id
                             else False, # CSG_IVA
-                    'production_line':
-                        product_browse.supply_method == 'produce',
-                    'to_produce': True,
+                    #'production_line': True,
+                    #    product_browse.supply_method == 'produce', #TODO <<<< vedere come fare a capire se è di produzione
+                    #'to_produce': True,
                     'date_deadline': date_deadline,
                     'order_id': order_id,
                     'sequence': sequence, # id of row (not order field)
@@ -303,11 +307,11 @@ class sale_order_sql(osv.osv):
                                 and date_deadline == element[3]):
 
                             # Approx test:
-                            if abs(element[4] - quantity) < 1.0: # Q. different
-                                data["accounting_state"] = "new"
-                                element[1] = True # set this line as assigned!
-                            else:
-                                data["accounting_state"] = "modified"
+                            #if abs(element[4] - quantity) < 1.0: # Q. different
+                            data["accounting_state"] = "new"
+                            element[1] = True # set this line as assigned!
+                            #else:
+                            #    data["accounting_state"] = "modified"
 
                             # Modify record:
                             oc_line_id = element[0]
@@ -320,14 +324,14 @@ class sale_order_sql(osv.osv):
                         cr, uid, data, context=context)
 
                 # Save data for accounting evaluations:
-                if product_browse.id in is_to_produce_q:
-                    is_to_produce_q[product_browse.id] += quantity or 0.0
-                    is_to_produce_line[product_browse.id].append(oc_line_id)
-                else: # new element
-                    # Min q. + sum(all order Q)
-                    is_to_produce_q[product_browse.id] = (
-                        quantity or 0.0) + product_browse.minimum_qty
-                    is_to_produce_line[product_browse.id] = [oc_line_id]
+                #if product_browse.id in is_to_produce_q:
+                #    is_to_produce_q[product_browse.id] += quantity or 0.0
+                #    is_to_produce_line[product_browse.id].append(oc_line_id)
+                #else: # new element
+                #    # Min q. + sum(all order Q)
+                #    is_to_produce_q[product_browse.id] = (
+                #        quantity or 0.0) + product_browse.minimum_qty
+                #    is_to_produce_line[product_browse.id] = [oc_line_id]
             except:
                 _logger.error("Problem with oc line record: %s\n%s" % (
                     oc_line,
@@ -344,14 +348,15 @@ class sale_order_sql(osv.osv):
         ]) # to delete (in production) # TODO log!
         if to_delete_ids:
             oc_in_production_del = ""
-            for item in line_pool.browse(cr, uid, to_delete_ids, context=context):
+            for item in line_pool.browse(
+                    cr, uid, to_delete_ids, context=context):
                 oc_in_production_deleted += "Order: %s (%s) [%s q.: %s] >> %s" % (
                     item.order_id.name,
                     item.date_deadline,
                     item.product_id.name,
                     item.product_uom_qty,
                     item.mrp_production_id.name
-                )
+                    )
             
             if oc_in_production_del:
                 _logger.warning(
@@ -361,7 +366,8 @@ class sale_order_sql(osv.osv):
                 try:
                     line_pool.unlink(cr, uid, [del_id], context=context) # delete directly
                 except:
-                    _logger.warning(_("Unable to delete sale order %s!") % (del_id))
+                    _logger.warning(
+                        _("Unable to delete sale order %s!") % del_id)
 
             _logger.info(
                 "Closed %s lines non present in Accounting (in production)!" % (
@@ -388,21 +394,22 @@ class sale_order_sql(osv.osv):
             'Accounting order',
             help='Automatic generation from importation'),
         'accounting_state': fields.selection([
-            ('new', 'New'),
-            ('production', 'Production'), 
-            ('closed', 'Closed'), 
-        ],'Accounting state', select=True, readonly=True), }
+            ('new', 'New'), # New
+            ('production', 'Production'), # Some line are in production
+            ('closed', 'Closed'), # Order delivered or deleted
+            ],'Accounting state', select=True, readonly=True), 
+        }
 
     _defaults = {
         #'date_previous_deadline': lambda *x: False,
-        'date_delivery': lambda *x: False,
+        #'date_delivery': lambda *x: False,
         'accounting_order': lambda *x: False,
         'accounting_state': lambda *x: 'new',
         }
 
 class sale_order_line_extra(osv.osv):
-    ''' Create extra fields in sale.order.line obj
-    '''
+    """ Create extra fields in sale.order.line obj
+    """
     
     _name = "sale.order.line"
     _inherit = "sale.order.line"
@@ -411,7 +418,8 @@ class sale_order_line_extra(osv.osv):
         'accounting_state': fields.selection([
             ('new', 'New'),
             ('production', 'Production'), 
-            ('closed', 'Closed'), 
+            ('producted', 'Producted'), 
+            ('closed', 'Closed/Deleted'), 
         ],'Accounting state', select=True, readonly=True),
         'date_deadline': fields.date('Deadline'),
         

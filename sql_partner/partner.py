@@ -89,6 +89,7 @@ class res_partner(orm.Model):
         ''' Return partner_id read from the import code passed
             (search in customer, supplier, destiantion)
         '''
+        
         partner_id = self.search(cr, uid, ['|', '|',
             ('sql_supplier_code', '=', code),
             ('sql_customer_code','=', code),
@@ -103,13 +104,14 @@ class res_partner(orm.Model):
     #                             Scheduled action
     # -------------------------------------------------------------------------
     def schedule_sql_partner_import(self, cr, uid, verbose_log_count=100, 
-        capital=True, write_date_from=False, write_date_to=False, 
-        create_date_from=False, create_date_to=False, sync_vat=False,
-        address_link=False, only_block=False, context=None):
+            capital=True, write_date_from=False, write_date_to=False, 
+            create_date_from=False, create_date_to=False, sync_vat=False,
+            address_link=False, only_block=False, context=None):
         ''' Import partner from external DB
             verbose_log_count: number of record for verbose log (0 = nothing)
             capital: if table has capital letters (usually with mysql in win)
         '''
+        
         # Load country for get ID from code
         countries = {}
         country_pool = self.pool.get('res.country')

@@ -88,31 +88,50 @@ def prepare_float(valore):
 def get_partner_id(self, cr, uid, ref, context=None):
     ''' Get OpenERP ID for res.partner with passed accounting reference
     '''
-    partner_id=self.pool.get("res.partner").search(cr, uid, ["|","|",('mexal_c','=',ref),('mexal_d','=',ref),('mexal_s','=',ref)], context=context)
+    
+    partner_id = self.pool.get("res.partner").search(cr, uid, [
+        "|", "|",
+        ('sql_customer_code', '=', ref),
+        ('sql_supplier_code', '=', ref),
+        ('sql_destination_code', '=', ref),
+        ], context=context)
     return partner_id[0] if partner_id else False
  
 def browse_partner_id(self, cr, uid, item_id, context=None):
     ''' Return browse obj for partner id
     '''
-    browse_ids = self.pool.get('res.partner').browse(cr, uid, [item_id], context=context)
+    browse_ids = self.pool.get('res.partner').browse(
+        cr, uid, [item_id], context=context)
     return browse_ids[0] if browse_ids else False
  
 def browse_partner_ref(self, cr, uid, ref, context=None):
     ''' Get OpenERP ID for res.partner with passed accounting reference
     '''
-    partner_id = self.pool.get("res.partner").search(cr, uid, ["|","|",('mexal_c','=',ref),('mexal_d','=',ref),('mexal_s','=',ref)], context=context)
-    return self.pool.get('res.partner').browse(cr, uid, partner_id[0], context=context) if partner_id else False
+    
+    partner_id = self.pool.get("res.partner").search(
+        cr, uid, [
+            "|","|",
+            ('sql_customer_code', '=', ref),
+            ('sql_supplier_code', '=', ref),
+            ('sql_destination_code', '=', ref),
+            ], context=context)
+    return self.pool.get('res.partner').browse(
+        cr, uid, partner_id[0], context=context) if partner_id else False
  
 def get_product_id(self, cr, uid, ref, context=None):
     ''' Get OpenERP ID for product.product with passed accounting reference
     '''
-    item_id = self.pool.get('product.product').search(cr, uid, [('default_code', '=', ref)], context=context)
+    
+    item_id = self.pool.get('product.product').search(cr, uid, [
+        ('default_code', '=', ref)], context=context)
     return item_id[0] if item_id else False
  
 def browse_product_id(self, cr, uid, item_id, context=None):
     ''' Return browse obj for product id
     '''
-    browse_ids = self.pool.get('product.product').browse(cr, uid, [item_id], context=context)
+    
+    browse_ids = self.pool.get('product.product').browse(
+        cr, uid, [item_id], context=context)
     return browse_ids[0] if browse_ids else False
  
 def browse_product_ref(self, cr, uid, ref, context=None):
@@ -120,10 +139,13 @@ def browse_product_ref(self, cr, uid, ref, context=None):
         Create a minimal product with code ref for not jump oc line creation
         (after normal sync of product will update all the fields not present
     '''
-    item_id = self.pool.get('product.product').search(cr, uid, [('default_code', '=', ref)], context=context)
+    
+    item_id = self.pool.get('product.product').search(cr, uid, [
+        ('default_code', '=', ref)], context=context)
     if not item_id:
        try:
-           uom_id = self.pool.get('product.uom').search(cr, uid, [('name', '=', 'kg')],context=context)
+           uom_id = self.pool.get('product.uom').search(cr, uid, [
+               ('name', '=', 'kg')],context=context)
            uom_id = uom_id[0] if uom_id else False
            item_id=self.pool.get('product.product').create(cr,uid,{
                'name': ref,
@@ -144,7 +166,8 @@ def browse_product_ref(self, cr, uid, ref, context=None):
        except:
            return False # error creating product
     else:
-        item_id=item_id[0]  # first
-    return self.pool.get('product.product').browse(cr, uid, item_id, context=context)
+        item_id = item_id[0]  # first
+    return self.pool.get('product.product').browse(
+        cr, uid, item_id, context=context)
  
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

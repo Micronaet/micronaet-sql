@@ -32,11 +32,12 @@
     'depends': [
         'base', 
         'base_mssql_accounting',       
+        'sale',
         ],
     'init_xml': [],
     'demo': [],
     'data': [
-        #'security/ir.model.access.csv',
+        'sale_view.xml', # used by other modules (not visible here)
         'scheduler.xml',
         ],
     'active': False,

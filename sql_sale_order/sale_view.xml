@@ -1,0 +1,88 @@
+<?xml version="1.0" ?>
+<openerp>
+	<data>
+	<!-- Create view for manage production (non visible, used in production modules)-->
+	<!-- sale.order.line *****************************-->
+    <record model="ir.ui.view" id="view_sale_order_line_search">
+        <field name="name">Search OC line</field>
+        <field name="model">sale.order.line</field>
+        <field name="priority" eval="20"/>
+        <field name="arch" type="xml">
+            <search string="OC line">
+                    <!--<field name="partner_id" string="Partner" filter_domain="[('partner_id','=',self)]"/>-->
+                    <field name="product_id" string="Product" filter_domain="[('product_id','=',self)]"/>
+                    <field name="order_id" string="Order" filter_domain="[('order_id','=',self)]"/> 
+
+                    <!--<separator string="Manage Production:"/>
+                    <filter icon="terp-go-home" name="Production1" string="Produce (month 0)" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')),('mrp_production_id','=',False),('use_accounting_qty','=',False)]" context="{'group_by':'product_id'}"/>
+                    <filter icon="terp-go-home" name="Production2" string="Produce (month 1)" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=2)).strftime('%%Y-%%m-01')),('mrp_production_id','=',False),('use_accounting_qty','=',False)]" context="{'group_by':'product_id'}"/>
+                    <filter icon="terp-go-home" name="Production3" string="Produce (month 2)" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=3)).strftime('%%Y-%%m-01')),('mrp_production_id','=',False),('use_accounting_qty','=',False)]" context="{'group_by':'product_id'}"/>-->
+
+                    <!--<separator string="See Production:"/>
+                    <filter string="Month 0 (all)" name="month1" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')),('use_accounting_qty','=',False)]"/>
+                    <filter string="Month 1 (all)" name="month2" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=2)).strftime('%%Y-%%m-01')),('use_accounting_qty','=',False)]"/>
+                    <filter string="Month 2 (all)" name="month3" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=3)).strftime('%%Y-%%m-01')),('use_accounting_qty','=',False)]"/>-->
+
+                    <group expand="1" string="Group By...">
+                        <!--<filter name="group_partner" string="Partner" icon="terp-partner" context="{'group_by':'partner_id'}"/>-->
+                        <filter name="group_product" string="Product" icon="terp-accessories-archiver" context="{'group_by':'product_id'}"/>
+                        <filter name="group_deadline" string="Deadline" icon="terp-accessories-archiver" context="{'group_by':'date_deadline'}"/>
+                    </group>                    
+            </search>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_sale_order_line_tree">
+        <field name="name">OC line</field>
+        <field name="model">sale.order.line</field>
+        <field name="priority" eval="20"/>
+        <field name="arch" type="xml">
+            <tree string="OC line"><!-- colors="red:accounting_state=='deleted';black:mandatory_delivery;blue:mrp_production_id;green:to_produce==False">-->
+                    <field name="production_line" invisible="1" />
+                    <field name="name" />
+                    <field name="product_id" />                    
+                    <!--<field name="duelist_uncovered" invisible="1" <field name="partner_id" />/>
+                    <button name="button_duelist_uncovered" type="object" string="uncovered present" icon="gtk-dialog-error" attrs="{'invisible':[('duelist_uncovered','=',False)]}" />-->
+                    <field name="order_id" />                   
+                    <field name="state_info" />                                    
+                    <field name="date_deadline" />                    
+                    <field name="product_uom" />
+                    <field name="product_uom_qty" sum="Total" />
+                    <field name="state" invisible="1" />
+                    <field name="accounting_state" />                    
+            </tree>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_sale_order_line_form">
+        <field name="name">OC line</field>
+        <field name="model">sale.order.line</field>
+        <field name="priority" eval="20"/>
+        <field name="arch" type="xml">
+            <form string="OC line" version="7.0">
+              <sheet string="OC line">
+                <group colspan="4" col="4">
+                    <separator string="Header:" colspan="4" />
+                    <field name="order_id" /> 
+                    <field name="date_deadline" />                    
+                </group>   
+                <group colspan="4" col="4">                
+                    <separator string="Line:" colspan="4" />
+                    <field name="sequence" />
+                    <field name="product_id" />
+                    <field name="product_uom_qty" />                    
+
+                    <separator string="Description:" colspan="4" />
+                    <field name="name"  />
+
+                    <!--<separator string="Production:" colspan="4" />
+                    <field name="mrp_production_id" domain="[('product_id','=',product_id)]" readonly="1"/> 
+                    <button name="%(action_assign_mrp_production_wizard_form)d" string="Assign lavoration" type="action" context="{'product_id':product_id}"/>-->
+                </group>   
+                <group>
+                  <separator string="Note" colspan="4"/>
+                </group>   
+              </sheet>  
+            </form>
+        </field>
+    </record>
+    </data>
+</openerp>    
