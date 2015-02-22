@@ -35,7 +35,7 @@
         'base', 
         'base_mssql_accounting',       
         'sale',
-        'product_family',
+        'production_family',
         ],
     'init_xml': [],
     'demo': [],
