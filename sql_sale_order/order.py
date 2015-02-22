@@ -41,11 +41,10 @@ from utility import *
 
 _logger = logging.getLogger(__name__)
 
-class sale_order_sql(osv.osv):
+class SaleOrderSql(orm.Model):
     """Update basic obiect for import accounting elements
     """
 
-    _name = "sale.order"
     _inherit = "sale.order"
 
     # -------------------------------------------------------------------------
@@ -58,7 +57,7 @@ class sale_order_sql(osv.osv):
             return uom_id[0] # take the first
         else:
             return False
-
+    
     # -------------------------------------------------------------------------
     #                                 Scheduled action
     # -------------------------------------------------------------------------

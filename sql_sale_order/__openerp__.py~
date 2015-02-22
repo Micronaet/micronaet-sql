@@ -25,6 +25,8 @@
         Import from accounting list of order for manage production
         Order are manage in another area for not overlap sale.order
         (and not manage with workflow)
+        All order import product but refer to product family (if present)
+        For all production and lavoration and BOM generated from this order
         ''',
     'author': 'Micronaet S.r.l. - Nicola Riolini',
     'website': 'http://www.micronaet.it',
@@ -33,6 +35,7 @@
         'base', 
         'base_mssql_accounting',       
         'sale',
+        'product_family',
         ],
     'init_xml': [],
     'demo': [],
