@@ -89,13 +89,23 @@ class product_product(orm.Model):
         '''
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
+        # Get route for manufacture:
+        route_pool = self.pool.get('stock.location.route')
+        route_ids = route_pool.search(cr, uid, [('name', '=', 'Manufacture')], context=context)
+        to_manufacture = (1, ) # TODO parametrize
+        if route_ids:
+            manufacture = [(6, 0, [route_ids[0]])]
+        else:
+            manufacture = False    
+        
         try:
             cursor = accounting_pool.get_product( 
                 cr, uid, active = False, write_date_from=write_date_from,
                 write_date_to=write_date_to, create_date_from=create_date_from,
                 create_date_to=create_date_to, context=context) 
             if not cursor:
-                _logger.error("Unable to connect no importation of package list for product!")
+                _logger.error(
+                    "Unable to connect no importation of package list for product!")
                 return False
 
             i = 0
@@ -107,7 +117,8 @@ class product_product(orm.Model):
 
                     data = {
                         # TODO IFL_ART_DBP o DBV for supply_method='produce'
-                        'name': record['CDS_ART'],
+                        'name': record['CDS_ART'] + (
+                            record['CDS_AGGIUN_ART'] or ''),
                         'default_code': record['CKY_ART'],
                         'sql_import': True,
                         'active': True,
@@ -119,6 +130,9 @@ class product_product(orm.Model):
                                     'CKY_CAT_STAT_ART'] else '',
                         ),
                     }
+                    # Test if is to manufacture
+                    if manufacture and record['NKY_STRUTT_ART'] in to_manufacture:
+                        data['route_ids'] = manufacture
                     if accounting_pool.is_active(record):
                         data['state'] = 'sellable'
                     else:
@@ -133,14 +147,14 @@ class product_product(orm.Model):
                     else:
                         product_id = product_proxy.create(cr, uid, data, 
                             context=context)
-
                 except:
                     _logger.error('Error import product [%s], jumped: %s' % (
                         record['CDS_ART'], sys.exc_info(), ))
                         
             _logger.info('All product is updated!')
         except:
-            _logger.error('Error generic import product: %s' % (sys.exc_info(), ))
+            _logger.error('Error generic import product: %s' % (
+                sys.exc_info(), ))
             return False
         return True
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
