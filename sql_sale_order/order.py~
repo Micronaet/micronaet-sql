@@ -410,7 +410,6 @@ class sale_order_line_extra(osv.osv):
     """ Create extra fields in sale.order.line obj
     """
     
-    _name = "sale.order.line"
     _inherit = "sale.order.line"
 
     _columns = {
@@ -422,6 +421,9 @@ class sale_order_line_extra(osv.osv):
         ],'Accounting state', select=True, readonly=True),
         'date_deadline': fields.date('Deadline'),
         
+        'partner_id': fields.related('order_id','partner_id', type='many2one', 
+            relation='res.partner', string='Partner', store=True), # TODO {}
+            
         # For production
         'mrp_production_id':fields.many2one(
             'mrp.production', 'Production order', required=False,
