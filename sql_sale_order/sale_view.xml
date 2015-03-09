@@ -10,6 +10,7 @@
         <field name="arch" type="xml">
             <search string="OC line">
                     <!--<field name="partner_id" string="Partner" filter_domain="[('partner_id','=',self)]"/>-->
+                    <field name="partner_id" string="Partner" filter_domain="[('partner_id','=',self)]"/>
                     <field name="product_id" string="Product" filter_domain="[('product_id','=',self)]"/>
                     <field name="order_id" string="Order" filter_domain="[('order_id','=',self)]"/> 
 
@@ -24,7 +25,7 @@
                     <filter string="Month 2 (all)" name="month3" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=3)).strftime('%%Y-%%m-01')),('use_accounting_qty','=',False)]"/>-->
 
                     <group expand="1" string="Group By...">
-                        <!--<filter name="group_partner" string="Partner" icon="terp-partner" context="{'group_by':'partner_id'}"/>-->
+                        <filter name="group_partner" string="Partner" icon="terp-accessories-archiver" context="{'group_by':'partner_id'}"/>
                         <filter name="group_order" string="Order" icon="terp-accessories-archiver" context="{'group_by':'order_id'}"/>
                         <filter name="group_product" string="Product" icon="terp-accessories-archiver" context="{'group_by':'product_id'}"/>
                         <filter name="group_deadline" string="Deadline" icon="terp-accessories-archiver" context="{'group_by':'date_deadline'}"/>
@@ -80,7 +81,7 @@
         </field>
     </record>
 
-    <record model="ir.actions.act_window" id="action_view_sale_order_line">
+    <record model="ir.actions.act_window" id="action_view_sale_order_line_mandatory">
         <field name="name">Sale order line</field>
         <field name="res_model">sale.order.line</field>
         <field name="view_type">form</field>
@@ -90,5 +91,6 @@
         <field name="domain"></field>
         <field name="context">{'form_view_ref':'sql_sale_order.view_sale_order_line_form'}</field>
     </record>    
+
     </data>
 </openerp>    

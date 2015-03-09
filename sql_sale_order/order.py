@@ -213,8 +213,8 @@ class SaleOrderSql(orm.Model):
             ('order_id', 'in', updated_ids)], context=context)
 
         # Set all line as 'not confirmed':
-        res = line_pool.write(cr, uid, order_line_ids, {
-            'accounting_state': 'not'}, context=context)
+        #res = line_pool.write(cr, uid, order_line_ids, {   # TODO check<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        #    'accounting_state': 'not'}, context=context)
 
         # Load all OC line in openerp in DB_line dict
         DB_line = {}
@@ -422,6 +422,9 @@ class sale_order_line_extra(osv.osv):
         ],'Accounting state', select=True, readonly=True),
         'date_deadline': fields.date('Deadline'),
         
+        'partner_id': fields.related('order_id','partner_id', type='many2one', 
+            relation='res.partner', string='Partner', store=True), # TODO {}
+            
         # For production
         'mrp_production_id':fields.many2one(
             'mrp.production', 'Production order', required=False,

@@ -89,15 +89,17 @@ class product_product(orm.Model):
         '''
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
-        # Get route for manufacture:
+
+        # Get route for manufacture: TODO >> use a check bool??
         route_pool = self.pool.get('stock.location.route')
-        route_ids = route_pool.search(cr, uid, [('name', '=', 'Manufacture')], context=context)
+        route_ids = route_pool.search(cr, uid, [
+            ('name', '=', 'Manufacture')], context=context)
         to_manufacture = (1, ) # TODO parametrize
         if route_ids:
             manufacture = [(6, 0, [route_ids[0]])]
         else:
-            manufacture = False    
-        
+            manufacture = False
+
         try:
             cursor = accounting_pool.get_product( 
                 cr, uid, active = False, write_date_from=write_date_from,

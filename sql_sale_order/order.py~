@@ -213,8 +213,8 @@ class SaleOrderSql(orm.Model):
             ('order_id', 'in', updated_ids)], context=context)
 
         # Set all line as 'not confirmed':
-        res = line_pool.write(cr, uid, order_line_ids, {
-            'accounting_state': 'not'}, context=context)
+        #res = line_pool.write(cr, uid, order_line_ids, {   # TODO check<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        #    'accounting_state': 'not'}, context=context)
 
         # Load all OC line in openerp in DB_line dict
         DB_line = {}
