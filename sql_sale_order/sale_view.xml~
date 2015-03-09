@@ -25,7 +25,6 @@
                     <filter string="Month 2 (all)" name="month3" domain="['|',('date_deadline','=',False),('date_deadline','&lt;',(context_today()+relativedelta(months=3)).strftime('%%Y-%%m-01')),('use_accounting_qty','=',False)]"/>-->
 
                     <group expand="1" string="Group By...">
-                        <!--<filter name="group_partner" string="Partner" icon="terp-partner" context="{'group_by':'partner_id'}"/>-->
                         <filter name="group_partner" string="Partner" icon="terp-accessories-archiver" context="{'group_by':'partner_id'}"/>
                         <filter name="group_order" string="Order" icon="terp-accessories-archiver" context="{'group_by':'order_id'}"/>
                         <filter name="group_product" string="Product" icon="terp-accessories-archiver" context="{'group_by':'product_id'}"/>
