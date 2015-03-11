@@ -29,7 +29,9 @@ This module shows the address type field
     'author': 'Agile Business Group',
     'website': 'http://www.agilebg.com',
     'summary': 'Partner addresses',
-    'depends': [],
+    'depends': [
+        'base',
+        ],
     'data': [
         'partner_view.xml',
     ],

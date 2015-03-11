@@ -39,10 +39,11 @@
         <field name="priority" eval="20"/>
         <field name="arch" type="xml">
             <tree string="OC line"><!-- colors="red:accounting_state=='deleted';black:mandatory_delivery;blue:mrp_production_id;green:to_produce==False">-->
-                    <field name="name" />
                     <field name="partner_id" />
-                    <field name="product_id" />                    
                     <field name="order_id" />                   
+                    <field name="default_code" />
+                    <field name="product_id" />                    
+                    <field name="name" />
                     <field name="date_deadline" />                    
                     <field name="product_uom" />
                     <field name="product_uom_qty" sum="Total" />
