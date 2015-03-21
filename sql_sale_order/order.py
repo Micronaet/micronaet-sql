@@ -243,6 +243,8 @@ class SaleOrderSql(orm.Model):
 
         for oc_line in cr_oc_line:
             try:
+                if oc_line['CDS_VARIAZ_ART'] == 'B':
+                    continue # TODO jump B line? (only for warning check)
                 oc_key = get_oc_key(oc_line)
                 if oc_key not in oc_header:
                     _logger.error(
@@ -300,16 +302,23 @@ class SaleOrderSql(orm.Model):
                     'order_id': order_id,
                     'sequence': sequence, # id of row (not order field)
                     }
-
+                
+                # --------------------
                 # Syncronization part:
+                # --------------------
                 mod = False
                 if order_id in DB_line:
-                    for element in DB_line[order_id]: # list of all the order line in OpenERP   [ID, finded, product_id, deadline, q.]
+                    # list of all the order line in OpenERP 
+                    # [ID, finded, product_id, deadline, q., maked, state]                    
+                    for element in DB_line[order_id]: # All line in odoo order
                         # product and deadline
-                        if (element[1] == False
-                                and element[2] == product_browse.id
-                                and date_deadline == element[3]):
+                        if (element[1] == False and
+                            element[2] == product_browse.id and
+                            date_deadline == element[3]):
 
+                            #TODO if oc_line['CDS_VARIAZ_ART'] = 'B' # Susp. line
+                            #    # Postulate: maked = this q!
+                            
                             # Approx test:
                             #if abs(element[4] - quantity) < 1.0: # Q. different
                             data["accounting_state"] = "new"
