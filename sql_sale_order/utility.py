@@ -150,7 +150,7 @@ def browse_product_ref(self, cr, uid, ref, context=None):
            item_id=self.pool.get('product.product').create(cr,uid,{
                'name': ref,
                'name_template': ref,
-               'mexal_id': ref,
+               #'mexal_id': ref,
                'default_code': ref,
                'sale_ok': True,
                'type': 'consu',
@@ -161,7 +161,7 @@ def browse_product_ref(self, cr, uid, ref, context=None):
                'uos_id': uom_id,
                'uom_id': uom_id,
                'uom_po_id': uom_id,
-               'supply_method': 'produce',
+               #'supply_method': 'produce',
            }, context=context)
        except:
            return False # error creating product

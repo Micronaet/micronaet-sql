@@ -90,7 +90,8 @@ class micronaet_accounting(orm.Model):
                 return False
             return cursor
         except:
-            _logger.error("Executing connect: [%s]" % (sys.exc_info(), ))
+            _logger.error("Executing connect: [%s]" % (
+                sys.exc_info(), ))
             return False    
 
     def no_date(self, data_value):

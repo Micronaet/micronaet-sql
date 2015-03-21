@@ -63,15 +63,14 @@ class SaleOrderSql(orm.Model):
     # -------------------------------------------------------------------------
     def schedule_etl_sale_order(self, cr, uid, context=None):
         """Import OC and create sale.order
-        """
-        
+        """        
         _logger.info("Start import OC header")
         query_pool = self.pool.get('micronaet.accounting')
         empty_date = query_pool.get_empty_date()
         log_info = ""
 
         # ---------------------------------------------------------------------
-        #                                 Utility
+        #                                 UTILITY
         # ---------------------------------------------------------------------
         def get_oc_key(record):
             """ Compose and return key for OC
