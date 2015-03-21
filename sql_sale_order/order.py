@@ -92,7 +92,6 @@ class SaleOrderSql(orm.Model):
         updated_ids = []
 
         # Start importation from SQL:
-        import pdb; pdb.set_trace()
         cr_oc = query_pool.get_oc_header(cr, uid, context=context)
         if not cr_oc:
             _logger.error("Cannot connect to MSSQL OC_TESTATE")
@@ -194,7 +193,6 @@ class SaleOrderSql(orm.Model):
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
 
-        import pdb; pdb.set_trace()
         # Mark as closed order not present in accounting:
         # Rule: order before - order update = order to delete
         if order_ids:
@@ -235,7 +233,6 @@ class SaleOrderSql(orm.Model):
         # -------------------------
         # Read database order line:
         # -------------------------
-        import pdb; pdb.set_trace()
         cr_oc_line = query_pool.get_oc_line(cr, uid, context=context)
         if not cr_oc_line:
             _logger.error("Cannot connect to MSSQL OC_RIGHE")
@@ -288,6 +285,10 @@ class SaleOrderSql(orm.Model):
                 data = {
                     'name': oc_line['CDS_VARIAZ_ART'],
                     'product_id': product_browse.id,
+                    'family_id': product_browse.product_tmpl_id.family_id.id 
+                        if (product_browse.product_tmpl_id and 
+                            product_browse.product_tmpl_id.family_id) \
+                        else False,
                     'product_uom_qty': quantity,
                     'product_uom': uom_id,
                     'price_unit': (oc_line['NPZ_UNIT'] or 0.0) * conversion,
@@ -341,7 +342,6 @@ class SaleOrderSql(orm.Model):
                     oc_line,
                     sys.exc_info()
                 ))
-        import pdb; pdb.set_trace()
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
         _logger.info("End importation OC header and line!")
@@ -388,9 +388,15 @@ class sale_order_line_extra(osv.osv):
             string='Code', store=False), 
             
         # For production
-        'mrp_production_id':fields.many2one(
+        'mrp_production_id': fields.many2one(
             'mrp.production', 'Production order', required=False,
             ondelete='set null',),
+
+        # TODO Bad, require yet family_id installed!!!
+        'family_id': fields.many2one('product.template', 'Family', 
+            help='Parent family product belongs',
+            #domain=[('is_family', '=', True)],
+            readonly=True),            
         
         #'partner_id': fields.related(
         #    'order_id','partner_id', type='many2one', relation='res.partner',
