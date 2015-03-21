@@ -99,7 +99,8 @@ class SaleOrderSql(orm.Model):
                 self, cr, uid, "schedule_etl_sale_order",
                 "Cannot connect to MSSQL OC_TESTATE", )
 
-        oc_header = {} # ODOO ID  (ref, type, number)
+        # Converter 
+        oc_header = {} # (ref, type, number): ODOO ID
         for oc in cr_oc:
             try:
                 name = "MX-%s/%s" % (
@@ -127,7 +128,7 @@ class SaleOrderSql(orm.Model):
                     
                     # TODO:
                     header = {}
-                    if header: # not working for now, decide if is necessary
+                    if header: # TODO not working for now, is necessary?
                         update = self.write(
                             cr, uid, oc_id, header, context=context)
 
@@ -157,6 +158,7 @@ class SaleOrderSql(orm.Model):
                                     'parent_id': False,
                                     'sql_customer_code': oc['CKY_CNT_CLFR'],
                                 }, context=context)
+                            # TODO reload partner_proxy function?    
                         except:
                              _logger.error(
                                  "Error creating minimal partner: %s [%s]" % (
@@ -167,8 +169,8 @@ class SaleOrderSql(orm.Model):
                         partner_id = partner_proxy.id
 
                     oc_id = self.create(cr, uid, {
-                        'name': name, # 64
-                        'accounting_order': True, # From importation
+                        'name': name,
+                        'accounting_order': True, # importation flag
                         'origin': False,
                         'picking_policy': 'direct',
                         'order_policy': 'manual',
@@ -184,7 +186,7 @@ class SaleOrderSql(orm.Model):
                         #'partner_shipping_id': partner_id, # TODO if present?
                     }, context=context)
 
-                # Save reference for lines:
+                # Save reference for lines (deadline purpose):
                 oc_key = get_oc_key(oc)
                 if (oc_key) not in oc_header:
                     # (ID, Deadline) # No deadline in header take first line
@@ -193,16 +195,14 @@ class SaleOrderSql(orm.Model):
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
 
-        # Delete header (and line linked):
-        # TODO one by one (like unlink)?
+        # Mark as closed order not present in accounting:
+        # Rule: order before - order update = order to delete
         if order_ids:
-            # Rule: order before - order update = order to delete
             try:
                 self.write(cr, uid, order_ids, {
                     'accounting_state': 'close'}, context=context)
             except:
-                _logger.error("Error closing order id: %s" % delete_id)
-
+                _logger.error("Error closing order ids: %s" % order_ids)
 
         # ---------------------------------------------------------------------
         #                               IMPORT LINE
@@ -211,12 +211,9 @@ class SaleOrderSql(orm.Model):
         line_pool = self.pool.get('sale.order.line')
         order_line_ids = line_pool.search(cr, uid, [
             ('order_id', 'in', updated_ids)], context=context)
+        # TODO lines for order deleted?    
 
-        # Set all line as 'not confirmed':
-        #res = line_pool.write(cr, uid, order_line_ids, {   # TODO check<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        #    'accounting_state': 'not'}, context=context)
-
-        # Load all OC line in openerp in DB_line dict
+        # Load all OC line in openerp DB in dict
         DB_line = {}
         for ol in line_pool.browse(cr, uid, order_line_ids, context=context):
             if ol.order_id.id not in DB_line:
@@ -226,13 +223,18 @@ class SaleOrderSql(orm.Model):
             # DB Line record:
             # ---------------
             DB_line[ol.order_id.id].append([
-                ol.id,               # ID
-                False,               # finded
-                ol.product_id.id,    # product_id
-                ol.date_deadline,    # deadline
-                ol.product_uom_qty], # q.
-                )
+                ol.id,                     # ID
+                False,                     # finded
+                ol.product_id.id,          # product_id
+                ol.date_deadline,          # deadline
+                ol.product_uom_qty,        # q.
+                ol.product_uom_maked_qty,  # q. maked (partial prod or tot)
+                ol.sync_state,             # state for production-accounting
+                ], )
 
+        # -------------------------
+        # Read database order line:
+        # -------------------------
         cr_oc_line = query_pool.get_oc_line(cr, uid, context=context)
         if not cr_oc_line:
             return log_error(self, cr, uid,
@@ -261,15 +263,18 @@ class SaleOrderSql(orm.Model):
                     "%Y-%m-%d") if oc_line[
                         'DTT_SCAD'] and oc_line[
                             'DTT_SCAD'] != empty_date else False
-                # NOTE this is ID of line in OC (not sequence order)
+
+                # NOTE this is ID of line in OC (not sequence=order)
                 sequence = oc_line['NPR_RIGA']
                 uom_id = product_browse.uom_id.id if product_browse else False
                 conversion = (
                     oc_line['NCF_CONV'] if oc_line['NCF_CONV'] else 1.0)
-                quantity = (
+                
+                # pack * unit item * conversion
+                quantity = (oc_line['NGB_COLLI'] or 1.0) * (
                     oc_line['NQT_RIGA_O_PLOR'] or 0.0) * 1.0 / conversion
 
-                # Save deadline in OC header (first time):
+                # Save deadline in OC header (only first time):
                 if not oc_header[oc_key][1]:
                     # take the first deadline and save in header
                     if date_deadline:
@@ -322,66 +327,11 @@ class SaleOrderSql(orm.Model):
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
 
-                # Save data for accounting evaluations:
-                #if product_browse.id in is_to_produce_q:
-                #    is_to_produce_q[product_browse.id] += quantity or 0.0
-                #    is_to_produce_line[product_browse.id].append(oc_line_id)
-                #else: # new element
-                #    # Min q. + sum(all order Q)
-                #    is_to_produce_q[product_browse.id] = (
-                #        quantity or 0.0) + product_browse.minimum_qty
-                #    is_to_produce_line[product_browse.id] = [oc_line_id]
             except:
                 _logger.error("Problem with oc line record: %s\n%s" % (
                     oc_line,
                     sys.exc_info()
                 ))
-
-        # NOTE: only deleted lines with order still present!!!!:
-        # ---------------------------------------------------------------------
-        #                       Delete lines in production (logging)
-        # ---------------------------------------------------------------------
-        to_delete_ids = line_pool.search(cr, uid, [
-            ('accounting_state', '=', 'not'),
-            ('mrp_production_id', '!=', False)
-        ]) # to delete (in production) # TODO log!
-        if to_delete_ids:
-            oc_in_production_del = ""
-            for item in line_pool.browse(
-                    cr, uid, to_delete_ids, context=context):
-                oc_in_production_deleted += "Order: %s (%s) [%s q.: %s] >> %s" % (
-                    item.order_id.name,
-                    item.date_deadline,
-                    item.product_id.name,
-                    item.product_uom_qty,
-                    item.mrp_production_id.name
-                    )
-            
-            if oc_in_production_del:
-                _logger.warning(
-                    "OC line in production deleted!", oc_in_production_del)
-
-            for del_id in to_delete_ids:
-                try:
-                    line_pool.unlink(cr, uid, [del_id], context=context) # delete directly
-                except:
-                    _logger.warning(
-                        _("Unable to delete sale order %s!") % del_id)
-
-            _logger.info(
-                "Closed %s lines non present in Accounting (in production)!" % (
-                    len(to_delete_ids),))
-
-        # ---------------------------------------------------------------------
-        #                  Delete lines not in production (logging)
-        # ---------------------------------------------------------------------
-        to_delete_ids = line_pool.search(cr, uid, [
-            ('accounting_state', '=', 'not'),
-            ('mrp_production_id', '=', False),
-        ])
-        line_pool.write(
-            cr, uid, to_delete_ids, {
-                'accounting_state': 'closed'}, context=context)
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
         _logger.info("End importation OC header and line!")
