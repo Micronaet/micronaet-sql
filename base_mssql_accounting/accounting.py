@@ -119,12 +119,13 @@ class micronaet_accounting(orm.Model):
             Table: CP_PAGAMENTI
         '''
         table = "cp_pagamenti"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
         try:#                        ID       Description
-            cursor.execute("""SELECT NKY_PAG, CDS_PAG FROM %s;""" % (table, ))
+            cursor.execute("""SELECT NKY_PAG, CDS_PAG FROM %s;""" % table)
             return cursor # with the query setted up                  
         except: 
             _logger.error("Executing query %s: [%s]" % (
@@ -138,12 +139,17 @@ class micronaet_accounting(orm.Model):
             (only record with payment setted up)
         '''
         table = "pc_condizioni_comm"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
         try:#                        ID       Description
-            cursor.execute("""SELECT CKY_CNT, NKY_PAG FROM %s WHERE NKY_PAG>0;""" % (table, ))
+            cursor.execute("""
+                SELECT 
+                    CKY_CNT, NKY_PAG 
+                FROM %s 
+                WHERE NKY_PAG>0;""" % table)
             return cursor # with the query setted up                  
         except: 
             _logger.error("Executing query %s: [%s]" % (
@@ -156,7 +162,8 @@ class micronaet_accounting(orm.Model):
             Table: PC_CONDIZIONI_COMM
         '''
         table = "pc_condizioni_comm"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
@@ -175,13 +182,17 @@ class micronaet_accounting(orm.Model):
     # ----------
     #  PARTNER -
     # ---------
-    def get_partner(self, cr, uid, from_code, to_code, write_date_from=False, write_date_to=False, create_date_from=False, create_date_to=False, context=None):
+    def get_partner(self, cr, uid, from_code, to_code, write_date_from=False, 
+            write_date_to=False, create_date_from=False, create_date_to=False, 
+            context=None):
         ''' Import partner, customer or supplier, depend on from to code passed
             Table: PA_RUBR_PDC_CLFR
-            Extra where clause: from_code, to_code, write from/to, create from/to
+            Extra where clause: from_code, to_code, write from/to,
+            create from/to
         '''
         table = "pa_rubr_pdc_clfr"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
             
         cursor=self.connect(cr, uid, context=context)
@@ -324,7 +335,8 @@ class micronaet_accounting(orm.Model):
             NQT_ORD_FOR NQT_ORD_CLI NQT_SOSP_CLI NQT_CLI_AUT NQT_INPR  
         '''
         table = "aq_quantita"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
         
         cursor=self.connect(cr, uid, context=context)
@@ -347,7 +359,8 @@ class micronaet_accounting(orm.Model):
             Table: AR_PREZZI
         '''
         table = "ar_prezzi"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
         
         cursor = self.connect(cr, uid, context=context)
@@ -367,7 +380,8 @@ class micronaet_accounting(orm.Model):
                    Extra table (not present in all installations)            
         '''        
         table = "ar_vawc_pesoinkgpe"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
@@ -381,12 +395,14 @@ class micronaet_accounting(orm.Model):
             return False  
             
     def get_product_package_columns(self, cr, uid, context=None):
-        ''' Return list of columns for table (used for get package code: NGD_* where * is the CODE)
+        ''' Return list of columns for table (used for get package code: 
+                NGD_* where * is the CODE)
             Table: AR_VAWC_PEROINKGPE
                    Extra table (not present in all installations)            
         '''        
         table = "ar_vawc_pesoinkgpe"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
@@ -489,7 +505,8 @@ class micronaet_accounting(orm.Model):
             Table: OC_RIGHE
         '''        
         table = "oc_righe"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
@@ -498,7 +515,7 @@ class micronaet_accounting(orm.Model):
                 SELECT 
                     CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_RIGA, DTT_SCAD, CKY_ART, 
                     NGB_TIPO_QTA, NQT_RIGA_O_PLOR, NPR_SORT_RIGA, NCF_CONV, 
-                    NPZ_UNIT, CDS_VARIAZ_ART
+                    NPZ_UNIT, CDS_VARIAZ_ART, IST_RIGA_SOSP, NGB_COLLI
                 FROM %s;""" % (table, ))
             # no: NPZ_UNIT, NGL_RIF_RIGA, NPR_SORT_RIGA, NKY_CAUM, NKY_DEP
             return cursor # with the query setted up                  
@@ -513,7 +530,8 @@ class micronaet_accounting(orm.Model):
             Table: OC_FUNZ_RIGHE
         '''        
         table = "oc_funz_righe"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
@@ -538,7 +556,8 @@ class micronaet_accounting(orm.Model):
             Table: MM_TESTATE
         '''    
         table = "mm_testate"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         if where_document is None:
@@ -555,8 +574,10 @@ class micronaet_accounting(orm.Model):
                 CKY_CNT_SPED_ALT, NGB_CASTAT_CLIFOR, CDS_NOTE
             FROM %s%s;""" % (
                 table,
-                " WHERE CSG_DOC in %s" % (where_document, ) if where_document else "")
-        query = query.replace(",);", ");") # BAD!!! for remove , in list of documents
+                " WHERE CSG_DOC in %s" % (
+                    where_document, ) if where_document else "")
+        # VERY BAD!!! for remove , in list of documents
+        query = query.replace(",);", ");") 
         try: 
             cursor.execute(query)
             return cursor # with the query setted up
@@ -574,7 +595,8 @@ class micronaet_accounting(orm.Model):
         '''        
         query = "Not loaded"
         table = "mm_righe"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         if where_document is None:
@@ -591,8 +613,10 @@ class micronaet_accounting(orm.Model):
             CDS_VARIAB_ART, DTT_SCAD
             FROM %s%s;""" % (
                 table, 
-                " WHERE CSG_DOC in %s" % (where_document, ) if where_document else "")
-        query = query.replace(",);", ");") # BAD!!! for remove , in list of documents
+                " WHERE CSG_DOC in %s" % (
+                    where_document, ) if where_document else "")
+        # BAD!!! for remove , in list of documents                    
+        query = query.replace(",);", ");") 
         try:             
             cursor.execute(query)
             return cursor # with the query setted up                  
@@ -607,7 +631,8 @@ class micronaet_accounting(orm.Model):
             Table: MM_FUNZ_RIGHE
         '''        
         table = "mm_funz_righe"
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
             table = table.upper()
 
         if where_document is None:
@@ -623,8 +648,10 @@ class micronaet_accounting(orm.Model):
                 NPR_RIGA_ART, NQT_MOVM_UM1, NMP_VALMOV_UM1
                 FROM %s%s;""" % (
                     table,
-                    " WHERE CSG_DOC in %s" % (where_document, ) if where_document else "", )                    
-        query = query.replace(",);", ");") # BAD!!! for remove , in list of documents
+                    " WHERE CSG_DOC in %s" % (
+                        where_document, ) if where_document else "", )                    
+        # BAD!!! for remove , in list of documents                
+        query = query.replace(",);", ");") 
         try: #                       
             cursor.execute(query)
             return cursor # with the query setted up                  
@@ -635,7 +662,8 @@ class micronaet_accounting(orm.Model):
             return False  # Error return nothing
         
     _columns = {
-        'name':fields.char('SQL table', size=80, required=True, readonly=False,),
+        'name':fields.char(
+            'SQL table', size=80, required=True, readonly=False,),
         'datetime': fields.datetime('Last read'),
     }
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
