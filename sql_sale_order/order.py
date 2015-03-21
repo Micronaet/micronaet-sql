@@ -93,11 +93,11 @@ class SaleOrderSql(orm.Model):
         updated_ids = []
 
         # Start importation from SQL:
+        import pdb; pdb.set_trace()
         cr_oc = query_pool.get_oc_header(cr, uid, context=context)
         if not cr_oc:
-            return log_error(
-                self, cr, uid, "schedule_etl_sale_order",
-                "Cannot connect to MSSQL OC_TESTATE", )
+            _logger.error("Cannot connect to MSSQL OC_TESTATE")
+            return
 
         # Converter 
         oc_header = {} # (ref, type, number): ODOO ID
@@ -195,6 +195,7 @@ class SaleOrderSql(orm.Model):
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
 
+        import pdb; pdb.set_trace()
         # Mark as closed order not present in accounting:
         # Rule: order before - order update = order to delete
         if order_ids:
@@ -235,12 +236,12 @@ class SaleOrderSql(orm.Model):
         # -------------------------
         # Read database order line:
         # -------------------------
+        import pdb; pdb.set_trace()
         cr_oc_line = query_pool.get_oc_line(cr, uid, context=context)
         if not cr_oc_line:
-            return log_error(self, cr, uid,
-                "schedule_etl_sale_order",
-                _("Cannot connect to MSSQL OC_RIGHE"))
-
+            _logger.error("Cannot connect to MSSQL OC_RIGHE")
+            return
+            
         for oc_line in cr_oc_line:
             try:
                 if oc_line['CDS_VARIAZ_ART'] == 'B':
@@ -341,6 +342,7 @@ class SaleOrderSql(orm.Model):
                     oc_line,
                     sys.exc_info()
                 ))
+        import pdb; pdb.set_trace()
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
         _logger.info("End importation OC header and line!")

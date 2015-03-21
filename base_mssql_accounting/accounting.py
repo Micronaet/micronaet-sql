@@ -40,8 +40,6 @@ from openerp.tools import (DEFAULT_SERVER_DATE_FORMAT,
 
 _logger = logging.getLogger(__name__)
 
-
-
 class product_product(orm.Model):
     _name = 'product.product'
     _inherit = 'product.product'
@@ -61,11 +59,16 @@ class micronaet_accounting(orm.Model):
     _description = "Micronaet accounting"
 
     # Format parameters (for keys):   # TODO: test when year change:
-    KEY_MM_HEADER_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + datetime.now().strftime("%y") + "-%(NGL_DOC)s"
-    KEY_MM_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + datetime.now().strftime("%y") + "-%(NGL_DOC)s[%(NPR_DOC)s.%(NPR_RIGA_ART)s]"
+    KEY_MM_HEADER_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+        datetime.now().strftime("%y") + "-%(NGL_DOC)s"
+    KEY_MM_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+        datetime.now().strftime("%y") + _
+        "-%(NGL_DOC)s[%(NPR_DOC)s.%(NPR_RIGA_ART)s]"
 
-    KEY_OC_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + datetime.now().strftime("%y") + "-%(NGL_DOC)s[%(NPR_RIGA)s]"
-    KEY_OC_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + datetime.now().strftime("%y") + "-%(NGL_DOC)s"
+    KEY_OC_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+        datetime.now().strftime("%y") + "-%(NGL_DOC)s[%(NPR_RIGA)s]"
+    KEY_OC_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+        datetime.now().strftime("%y") + "-%(NGL_DOC)s"
 
     #def get_mask(self, cr, uid, mask_name):
     #    ''' Return mask element configuring year value
@@ -78,17 +81,16 @@ class micronaet_accounting(orm.Model):
     def connect(self, cr, uid, context=None):
         ''' Connect action for link to MSSQL DB
         '''
-        import logging
-        _logger = logging.getLogger('base_mssql_accounting')
-        
         try:
-            connection = self.pool.get('res.company').mssql_connect(cr, uid, context=context)  # first company
+            connection = self.pool.get('res.company').mssql_connect(
+                cr, uid, context=context)  # first company
             cursor=connection.cursor()
             if not cursor: 
                 _logger.error("Can't access in Company MSSQL Database!")
                 return False
             return cursor
         except:
+            _logger.error("Executing connect: [%s]" % (sys.exc_info(), ))
             return False    
 
     def no_date(self, data_value):
@@ -116,16 +118,18 @@ class micronaet_accounting(orm.Model):
         ''' Access to anagrafic table of payments
             Table: CP_PAGAMENTI
         '''
+        table = "cp_pagamenti"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "CP_PAGAMENTI" 
-        else:
-            table = "cp_pagamenti"
+            table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
         try:#                        ID       Description
             cursor.execute("""SELECT NKY_PAG, CDS_PAG FROM %s;""" % (table, ))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     def get_payment_partner(self, cr, uid, context=None):
@@ -133,26 +137,27 @@ class micronaet_accounting(orm.Model):
             Table: PC_CONDIZIONI_COMM
             (only record with payment setted up)
         '''
+        table = "pc_condizioni_comm"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "PC_CONDIZIONI_COMM" 
-        else:
-            table = "pc_condizioni_comm"
+            table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
         try:#                        ID       Description
             cursor.execute("""SELECT CKY_CNT, NKY_PAG FROM %s WHERE NKY_PAG>0;""" % (table, ))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     def get_parent_partner(self, cr, uid, context=None):
         ''' Parent partner code for destination
             Table: PC_CONDIZIONI_COMM
         '''
+        table = "pc_condizioni_comm"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "PC_CONDIZIONI_COMM" 
-        else:
-            table = "pc_condizioni_comm"
+            table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
         try:#                        ID       Description
@@ -162,6 +167,9 @@ class micronaet_accounting(orm.Model):
                     table, ))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     # ----------
@@ -172,50 +180,62 @@ class micronaet_accounting(orm.Model):
             Table: PA_RUBR_PDC_CLFR
             Extra where clause: from_code, to_code, write from/to, create from/to
         '''
+        table = "pa_rubr_pdc_clfr"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "PA_RUBR_PDC_CLFR" 
-        else:
-            table = "pa_rubr_pdc_clfr"
+            table = table.upper()
             
         cursor=self.connect(cr, uid, context=context)
         
         # Compose where clause:
         where_clause = ""
         if from_code: 
-            where_clause += "%s CKY_CNT >= '%s' " % ("AND" if where_clause else "", from_code)
+            where_clause += "%s CKY_CNT >= '%s' " % (
+                "AND" if where_clause else "", from_code)
         if to_code: 
-            where_clause += "%s CKY_CNT < '%s' " % ("AND" if where_clause else "", to_code)
+            where_clause += "%s CKY_CNT < '%s' " % (
+                "AND" if where_clause else "", to_code)
             
         if create_date_from:
-            where_clause += "%s DTT_CRE >= '%s' " % ("AND" if where_clause else "", create_date_from)
+            where_clause += "%s DTT_CRE >= '%s' " % (
+                "AND" if where_clause else "", create_date_from)
         if create_date_to:
-            where_clause += "%s DTT_CRE <= '%s' " % ("AND" if where_clause else "", create_date_to)
+            where_clause += "%s DTT_CRE <= '%s' " % (
+                "AND" if where_clause else "", create_date_to)
             
         if write_date_from:
-            where_clause += "%s DTT_AGG_ANAG >= '%s' " % ("AND" if where_clause else "", write_date_from)
+            where_clause += "%s DTT_AGG_ANAG >= '%s' " % (
+                "AND" if where_clause else "", write_date_from)
         if write_date_to:
-            where_clause += "%s DTT_AGG_ANAG <= '%s' " % ("AND" if where_clause else "", write_date_to)
+            where_clause += "%s DTT_AGG_ANAG <= '%s' " % (
+                "AND" if where_clause else "", write_date_to)
 
-        try:#          Code     Name     Name surname     Address    ZIP      Location Prov      Phone          F. code   VAT       Fax      Mail      Web
+        try:
             cursor.execute(
                 """
-                SELECT CKY_CNT, CDS_CNT, CDS_RAGSOC_COGN, CDS_INDIR, CDS_CAP, CDS_LOC, CDS_PROV, CDS_TEL_TELEX, CSG_CFIS, CSG_PIVA, CDS_FAX, CDS_INET, CKY_PAESE, CDS_URL_INET
+                SELECT 
+                    CKY_CNT, CDS_CNT, CDS_RAGSOC_COGN, CDS_INDIR, CDS_CAP, 
+                    CDS_LOC, CDS_PROV, CDS_TEL_TELEX, CSG_CFIS, CSG_PIVA, 
+                    CDS_FAX, CDS_INET, CKY_PAESE, CDS_URL_INET
                 FROM %s %s;""" % (
                     table, 
                     "WHERE %s" % (where_clause) if where_clause else "")
             )
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
-    def get_partner_commercial(self, cr, uid, from_code, to_code, context=None):
+    def get_partner_commercial(self, cr, uid, from_code, to_code, 
+            context=None):
         ''' Import partner extra commercial info
             Table: PC_CONDIZIONI_COMM
         '''
-        if self.pool.get('res.company').table_capital_name(cr, uid, context=context):
-            table = "PC_CONDIZIONI_COMM" 
-        else:
-            table = "pc_condizioni_comm"
+        table = "pc_condizioni_comm"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)        
         try:
@@ -228,6 +248,9 @@ class micronaet_accounting(orm.Model):
             ))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     # -----------
@@ -246,11 +269,10 @@ class micronaet_accounting(orm.Model):
             Table: AR_ANAGRAFICHE
             Where clause: active, from_date, to_date
         '''
+        table = "ar_anagrafiche"
         if self.pool.get('res.company').table_capital_name(
                 cr, uid, context = context):
-            table = "AR_ANAGRAFICHE" 
-        else:
-            table = "ar_anagrafiche"
+            table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
         
@@ -261,27 +283,38 @@ class micronaet_accounting(orm.Model):
                 "AND" if where_clause else "")
             
         if create_date_from:
-            where_clause += "%s DTT_CRE >= '%s' " % ("AND" if where_clause else "", create_date_from)
+            where_clause += "%s DTT_CRE >= '%s' " % (
+                "AND" if where_clause else "", create_date_from)
         if create_date_to:
-            where_clause += "%s DTT_CRE <= '%s' " % ("AND" if where_clause else "", create_date_to)
+            where_clause += "%s DTT_CRE <= '%s' " % (
+                "AND" if where_clause else "", create_date_to)
             
         if write_date_from:
-            where_clause += "%s DTT_AGG_ANAG >= '%s' " % ("AND" if where_clause else "", write_date_from)
+            where_clause += "%s DTT_AGG_ANAG >= '%s' " % (
+                "AND" if where_clause else "", write_date_from)
         if write_date_to:
-            where_clause += "%s DTT_AGG_ANAG <= '%s' " % ("AND" if where_clause else "", write_date_to)
+            where_clause += "%s DTT_AGG_ANAG <= '%s' " % (
+                "AND" if where_clause else "", write_date_to)
 
         try:
             cursor.execute(
-                """SELECT CKY_ART, IST_ART, CDS_ART, CSG_ART_ALT, CSG_UNIMIS_PRI, 
-                          NMP_COSTD, CDS_AGGIUN_ART, NMP_UCA, IFL_ART_DBP, IFL_ART_CANC, 
-                          IFL_ART_ANN, CKY_CAT_STAT_ART, NKY_CAT_STAT_ART, CKY_CNT_FOR_AB,
-                          NKY_STRUTT_ART, DTT_CRE 
-                   FROM %s %s;""" % (table, "WHERE %s" % (where_clause) if where_clause else "")
+                """SELECT 
+                        CKY_ART, IST_ART, CDS_ART, CSG_ART_ALT, CSG_UNIMIS_PRI, 
+                        NMP_COSTD, CDS_AGGIUN_ART, NMP_UCA, IFL_ART_DBP, 
+                        IFL_ART_CANC, IFL_ART_ANN, CKY_CAT_STAT_ART, 
+                        NKY_CAT_STAT_ART, CKY_CNT_FOR_AB,
+                        NKY_STRUTT_ART, DTT_CRE 
+                   FROM %s %s;""" % (
+                       table, 
+                       "WHERE %s" % (where_clause) if where_clause else "")
             )
             
             # NOTE: TAX: AR_CONDIZIONI_COMM
             return cursor # with the query setted up                  
         except:
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     def get_product_quantity(self, cr, uid, store, year, context=None):
@@ -290,10 +323,9 @@ class micronaet_accounting(orm.Model):
             CKY_ART NKY_DEP NDT_ANNO NQT_INV NQT_CAR NQT_SCAR 
             NQT_ORD_FOR NQT_ORD_CLI NQT_SOSP_CLI NQT_CLI_AUT NQT_INPR  
         '''
+        table = "aq_quantita"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "AQ_QUANTITA" 
-        else:
-            table = "aq_quantita"
+            table = table.upper()
         
         cursor=self.connect(cr, uid, context=context)
         try:#                        Code     Inv      Car      Scar
@@ -301,26 +333,32 @@ class micronaet_accounting(orm.Model):
                                      NQT_ORD_FOR, NQT_ORD_CLI,
                                      NQT_SOSP_CLI, NQT_CLI_AUT, NQT_INPR
                               FROM %s
-                              WHERE NKY_DEP=%s and NDT_ANNO=%s;""" % (table, store, year))
+                              WHERE NKY_DEP=%s and NDT_ANNO=%s;""" % (
+                                  table, store, year))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     def get_product_price(self, cr, uid, context=None):
         ''' Return price table 
             Table: AR_PREZZI
         '''
+        table = "ar_prezzi"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "AR_PREZZI" 
-        else:
-            table = "ar_prezzi"
+            table = table.upper()
         
-        cursor=self.connect(cr, uid, context=context)
+        cursor = self.connect(cr, uid, context=context)
         try:
             cursor.execute("""SELECT *
                               FROM %s;""" % (table, ))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     def get_product_package(self, cr, uid, context=None):
@@ -328,16 +366,18 @@ class micronaet_accounting(orm.Model):
             Table: AR_VAWC_PEROINKGPE
                    Extra table (not present in all installations)            
         '''        
+        table = "ar_vawc_pesoinkgpe"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "AR_VAWC_PESOINKGPE" 
-        else:
-            table = "ar_vawc_pesoinkgpe"
+            table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
         try:#                        
             cursor.execute("""SELECT * FROM %s; """ % (table, ))
             return cursor 
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  
             
     def get_product_package_columns(self, cr, uid, context=None):
@@ -345,16 +385,24 @@ class micronaet_accounting(orm.Model):
             Table: AR_VAWC_PEROINKGPE
                    Extra table (not present in all installations)            
         '''        
+        table = "ar_vawc_pesoinkgpe"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "AR_VAWC_PESOINKGPE" 
-        else:
-            table = "ar_vawc_pesoinkgpe"
+            table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
         try:#                        
-            cursor.execute(""" SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='dbmirror' AND TABLE_NAME='%s' AND COLUMN_NAME like 'NGD_%s';""" % (table, "%")) 
+            cursor.execute("""
+                SELECT 
+                    COLUMN_NAME 
+                FROM 
+                    INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='dbmirror' 
+                    AND TABLE_NAME='%s' AND COLUMN_NAME like 'NGD_%s';""" % (
+                        table, "%")) 
             return cursor 
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  
 
     def get_product_level(self, cr, uid, store=1, context=None):
@@ -363,17 +411,23 @@ class micronaet_accounting(orm.Model):
             Table: AB_UBICAZIONI
             @store: store dep. (every order level depend on the store chosen)
         '''
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "AB_UBICAZIONI" 
-        else:
-            table = "ab_ubicazioni"
+        table = "ab_ubicazioni"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
         try:
-            cursor.execute("""SELECT CKY_ART, NQT_SCORTA_MIN, NQT_SCORTA_MAX
-                              FROM %s %s;""" % (table, "WHERE NKY_DEP=%s" % (store, )))
+            cursor.execute("""
+                SELECT 
+                    CKY_ART, NQT_SCORTA_MIN, NQT_SCORTA_MAX
+                FROM 
+                    %s %s;""" % (table, "WHERE NKY_DEP=%s" % (store, )))
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
 
     # --------------------
@@ -383,18 +437,24 @@ class micronaet_accounting(orm.Model):
         ''' Return quantity element for product
             Table: OF_RIGHE
         '''        
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "OF_RIGHE" 
-        else:
-            table = "of_righe"
+        table = "of_righe"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
 
-        cursor=self.connect(cr, uid, context=context)
-        try:#                        Id row    Product  Deadline  UM            Qty              Convers.
-            cursor.execute("""SELECT NPR_RIGA, CKY_ART, DTT_SCAD, NGB_TIPO_QTA, NQT_RIGA_O_PLOR, NCF_CONV
-                              FROM %s;""" % (table, ))
+        cursor = self.connect(cr, uid, context=context)
+        try:
+            cursor.execute("""
+                SELECT 
+                    NPR_RIGA, CKY_ART, DTT_SCAD, NGB_TIPO_QTA, 
+                    NQT_RIGA_O_PLOR, NCF_CONV
+                FROM %s;""" % (table, ))
             # Sort: NGL_DOC, NPR_SORT_RIGA                 
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing    
 
     # -------------------
@@ -404,52 +464,70 @@ class micronaet_accounting(orm.Model):
         ''' Return list of OC order (header)
             Table: OC_TESTATE
         '''        
-        if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "OC_TESTATE" 
-        else:
-            table = "oc_testate"
+        table = "oc_testate"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context = context):
+            table = table.upper()
 
-        cursor=self.connect(cr, uid, context=context)
-        try: #                       OC       1           Num.     Date     Partner       Destinazione      Agent           Transport     Port (DAF) Note    
-            cursor.execute("""SELECT CSG_DOC, NGB_SR_DOC, NGL_DOC, DTT_DOC, CKY_CNT_CLFR, CKY_CNT_SPED_ALT, CKY_CNT_AGENTE, CKY_CNT_VETT, IST_PORTO, CDS_NOTE
-                              FROM %s;""" % (table, ))
+        cursor = self.connect(cr, uid, context=context)
+        try:
+            cursor.execute("""
+                SELECT 
+                    CSG_DOC, NGB_SR_DOC, NGL_DOC, DTT_DOC, CKY_CNT_CLFR, 
+                    CKY_CNT_SPED_ALT, CKY_CNT_AGENTE, CKY_CNT_VETT, IST_PORTO, 
+                    CDS_NOTE
+                FROM %s;""" % table)
             return cursor # with the query setted up
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing    
         
     def get_oc_line(self, cr, uid, context=None):
         ''' Return quantity element for product
             Table: OC_RIGHE
         '''        
+        table = "oc_righe"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "OC_RIGHE" 
-        else:
-            table = "oc_righe"
+            table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
-        try: #                       OC       1           Num.     ID row    Deadline  Code     UM            Q.               Sord sequence  Convers.  Price     Description OC
-            cursor.execute("""SELECT CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_RIGA, DTT_SCAD, CKY_ART, NGB_TIPO_QTA, NQT_RIGA_O_PLOR, NPR_SORT_RIGA, NCF_CONV, NPZ_UNIT, CDS_VARIAZ_ART
-                              FROM %s;""" % (table, ))
+        try:
+            cursor.execute("""
+                SELECT 
+                    CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_RIGA, DTT_SCAD, CKY_ART, 
+                    NGB_TIPO_QTA, NQT_RIGA_O_PLOR, NPR_SORT_RIGA, NCF_CONV, 
+                    NPZ_UNIT, CDS_VARIAZ_ART
+                FROM %s;""" % (table, ))
             # no: NPZ_UNIT, NGL_RIF_RIGA, NPR_SORT_RIGA, NKY_CAUM, NKY_DEP
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing    
 
     def get_oc_funz_line(self, cr, uid, context=None):
         ''' Object for extra data in OC line
             Table: OC_FUNZ_RIGHE
         '''        
+        table = "oc_funz_righe"
         if self.pool.get('res.company').table_capital_name(cr, uid, context = context):
-            table = "OC_FUNZ_RIGHE" 
-        else:
-            table = "oc_funz_righe"
+            table = table.upper()
 
         cursor=self.connect(cr, uid, context=context)
-        try: #                       OC          1        Num.     ID row    Q UM1         Price UM1       Pack       Provv.
-            cursor.execute("""SELECT NGB_SR_DOC, CSG_DOC, NGL_DOC, NPR_RIGA, NQT_MOVM_UM1, NMP_VALMOV_UM1, NGB_COLLI, NMP_PROVV_VLT
-                              FROM %s;""" % (table, ))
+        try:
+            cursor.execute("""
+                SELECT 
+                    NGB_SR_DOC, CSG_DOC, NGL_DOC, NPR_RIGA, NQT_MOVM_UM1, 
+                    NMP_VALMOV_UM1, NGB_COLLI, NMP_PROVV_VLT
+                FROM %s;""" % table)
             return cursor # with the query setted up                  
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing    
 
     # ----------------
@@ -472,17 +550,20 @@ class micronaet_accounting(orm.Model):
             
         cursor = self.connect(cr, uid, context=context)
         query = """
-                SELECT CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_DOC, CKY_CNT_CLFR, DTT_DOC, 
-                CSG_DOC_ORI, NGB_SR_DOC_ORI, NGL_DOC_ORI, DTT_DOC_ORI,                                      
+            SELECT CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_DOC, CKY_CNT_CLFR, 
+                DTT_DOC, CSG_DOC_ORI, NGB_SR_DOC_ORI, NGL_DOC_ORI, DTT_DOC_ORI,                                      
                 CKY_CNT_SPED_ALT, NGB_CASTAT_CLIFOR, CDS_NOTE
-                FROM %s%s;""" % (
-                    table,
-                    " WHERE CSG_DOC in %s" % (where_document, ) if where_document else "")
+            FROM %s%s;""" % (
+                table,
+                " WHERE CSG_DOC in %s" % (where_document, ) if where_document else "")
         query = query.replace(",);", ");") # BAD!!! for remove , in list of documents
         try: 
             cursor.execute(query)
             return cursor # with the query setted up
         except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing    
         
     def get_mm_line(self, cr, uid, where_document=None, context=None):
@@ -516,7 +597,9 @@ class micronaet_accounting(orm.Model):
             cursor.execute(query)
             return cursor # with the query setted up                  
         except: 
-            _logger.error("Problem launch query: %s [%s]" % (query, sys.exc_info()))
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False
 
     def get_mm_funz_line(self, cr, uid, where_document=None, context=None):
@@ -546,6 +629,9 @@ class micronaet_accounting(orm.Model):
             cursor.execute(query)
             return cursor # with the query setted up                  
         except:
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
             return False  # Error return nothing
         
     _columns = {
