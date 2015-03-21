@@ -59,15 +59,15 @@ class micronaet_accounting(orm.Model):
     _description = "Micronaet accounting"
 
     # Format parameters (for keys):   # TODO: test when year change:
-    KEY_MM_HEADER_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+    KEY_MM_HEADER_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + \
         datetime.now().strftime("%y") + "-%(NGL_DOC)s"
-    KEY_MM_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
-        datetime.now().strftime("%y") + _
+    KEY_MM_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + \
+        datetime.now().strftime("%y") + \
         "-%(NGL_DOC)s[%(NPR_DOC)s.%(NPR_RIGA_ART)s]"
 
-    KEY_OC_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+    KEY_OC_LINE_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + \
         datetime.now().strftime("%y") + "-%(NGL_DOC)s[%(NPR_RIGA)s]"
-    KEY_OC_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + _
+    KEY_OC_FORMAT = "%(CSG_DOC)s%(NGB_SR_DOC)s:" + \
         datetime.now().strftime("%y") + "-%(NGL_DOC)s"
 
     #def get_mask(self, cr, uid, mask_name):
