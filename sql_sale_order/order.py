@@ -215,21 +215,18 @@ class SaleOrderSql(orm.Model):
         # Load all OC line in openerp DB in dict
         DB_line = {}
         for ol in line_pool.browse(cr, uid, order_line_ids, context=context):
-            if ol.order_id.id not in DB_line:
-                DB_line[ol.order_id.id] = []
-
-            # ---------------
-            # DB Line record:
-            # ---------------
-            DB_line[ol.order_id.id].append([
+            key = (ol.order_id.id, ol.product_id.id, ol.date_deadline)
+            if key in DB_line:
+                pass # TODO raise error?
+                # TODO test if present b or not b else error!
+                
+            DB_line[key] = [
                 ol.id,                     # ID
                 False,                     # finded
-                ol.product_id.id,          # product_id
-                ol.date_deadline,          # deadline
                 ol.product_uom_qty,        # q.
                 ol.product_uom_maked_qty,  # q. maked (partial prod or tot)
                 ol.sync_state,             # state for production-accounting
-                ], )
+                ]
 
         # -------------------------
         # Read database order line:
@@ -303,72 +300,60 @@ class SaleOrderSql(orm.Model):
                 # --------------------
                 # Syncronization part:
                 # --------------------
-                mod = False
+                key = (order_id, data['product_id'], data['date_deadline'])
                 # Loop on all odoo order line for manage sync mode
-                if order_id in DB_line:
-                    # [ID, finded, product_id, deadline, q., maked, state]                    
-                    for element in DB_line[order_id]:
-                        # product and deadline                        
-                        if (element[2] == product_browse.id and
-                                date_deadline == element[3]):
-                            oc_line_id = element[0]
+                if key in DB_line:
+                    # [ID, finded, q., maked, state]                    
+                    element = DB_line[key]
+                    oc_line_id = element[0]
+                    #TODO totalize all key line for duplications
+                     
+                    # 4 case (all not B, all B, not B-B, B-not B                            
+                    if oc_line['IST_RIGA_SOSP'] == 'B':
+                        if element[1]: # not B first or error
+                            del data['product_uom_qty'] # leave prev.
+                            line_pool.write(
+                                cr, uid, oc_line_id, data, 
+                                context=context)                                    
+                        else: # Create B line
+                            element[1] = True # set line as assigned!
+                            data['product_uom_maked_qty'] = data[
+                                'product_uom_qty']
+                            line_pool.write(
+                                cr, uid, oc_line_id, data, 
+                                context=context)
+                            # sync_state = ?                                    
+                    else: # Line not produced:                    
+                        if element[1]: # error or B created first
+                            # TODO check if B case else error dup. key!
+                            line_pool.write(
+                                cr, uid, oc_line_id, data, 
+                                context=context)
+                        else:
+                            # TODO Approx test:
+                            #if abs(element[4] - quantity) < 1.0: 
+                            # Q. different
                             
-                            # 4 case (all not B, all B, not B-B, B-not B                            
-                            if oc_line['IST_RIGA_SOSP'] == 'B':
-                                if element[1]: # not B first or error
-                                    del data['product_uom_qty'] # leave prev.
-                                    mod = line_pool.write(
-                                        cr, uid, oc_line_id, data, 
-                                        context=context)                                    
-                                else: # Create B line
-                                    element[1] = True # set line as assigned!
-                                    data['product_uom_maked_qty'] = data[
-                                        'product_uom_qty']
-                                    mod = line_pool.write(
-                                        cr, uid, oc_line_id, data, 
-                                        context=context)
-                                    # sync_state = ?                                    
-                            else: # Line not produced:
-                            
-                                if element[1]: # error or B created first
-                                    # TODO check if B case else error dup. key!
-                                    mod = line_pool.write(
-                                        cr, uid, oc_line_id, data, 
-                                        context=context)
-                                else:
-                                    # TODO Approx test:
-                                    #if abs(element[4] - quantity) < 1.0: 
-                                    # Q. different
-                                    
-                                    # TODO check variation q for production el.
-                                    data["accounting_state"] = "new" # TODO serve?
-                                    element[1] = True # set line as assigned!
-                                    #else:
-                                    #    data["accounting_state"] = "modified"
+                            # TODO check variation q for production el.
+                            data["accounting_state"] = "new" # TODO serve?
+                            element[1] = True # set line as assigned!
+                            #else:
+                            #    data["accounting_state"] = "modified"
 
-                                    # Modify record:
-                                    mod = line_pool.write(
-                                        cr, uid, oc_line_id, data, 
-                                        context=context)
-                else:
-                    DB_line[data['order_id']] = []                        
-                                         
-                # TODO >>> 1 tab forward?
-                # Create record, not found: (product_id-date_deadline)
-                if not mod:
+                            # Modify record:
+                            line_pool.write(
+                                cr, uid, oc_line_id, data, 
+                                context=context)
+                else: # Create record, not found: (product_id-date_deadline)
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
-                    # Add record for other elements:
-                    DB_line[data['order_id']].append([
+                    DB_line[key] = [
                         oc_line_id,
                         True, 
-                        data.get('product_id', False),
-                        data.get('date_deadline', False),
                         data.get('product_uom_qty', 0.0),
                         data.get('product_uom_maked_qty', 0.0),
                         data.get('sync_state', False), # TODO change?
-                        ], )
-
+                        ]
             except:
                 _logger.error("Problem with oc line record: %s\n%s" % (
                     oc_line,
