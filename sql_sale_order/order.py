@@ -304,8 +304,6 @@ class SaleOrderSql(orm.Model):
                 # Syncronization part:
                 # --------------------
                 mod = False
-                if data['order_id'] == 2110:
-                    import pdb; pdb.set_trace()
                 # Loop on all odoo order line for manage sync mode
                 if order_id in DB_line:
                     # [ID, finded, product_id, deadline, q., maked, state]                    
@@ -352,6 +350,8 @@ class SaleOrderSql(orm.Model):
                                     mod = line_pool.write(
                                         cr, uid, oc_line_id, data, 
                                         context=context)
+                else:
+                    DB_line[data['order_id']] = []                        
                                          
                 # TODO >>> 1 tab forward?
                 # Create record, not found: (product_id-date_deadline)
@@ -359,7 +359,7 @@ class SaleOrderSql(orm.Model):
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
                     # Add record for other elements:
-                    DB_line[ol.order_id.id].append([
+                    DB_line[data['order_id']].append([
                         oc_line_id,
                         True, 
                         data.get('product_id', False),
