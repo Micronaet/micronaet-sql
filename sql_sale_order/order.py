@@ -194,7 +194,6 @@ class SaleOrderSql(orm.Model):
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
 
-        import pdb; pdb.set_trace()
         # Mark as closed order not present in accounting:
         # Rule: order before - order update = order to delete
         if order_ids:
@@ -240,7 +239,6 @@ class SaleOrderSql(orm.Model):
             _logger.error("Cannot connect to MSSQL OC_RIGHE")
             return
             
-        import pdb; pdb.set_trace()
         for oc_line in cr_oc_line:
             try:
                 oc_key = get_oc_key(oc_line)
@@ -306,7 +304,8 @@ class SaleOrderSql(orm.Model):
                 # Syncronization part:
                 # --------------------
                 mod = False
-                
+                if data['order_id'] == 2110:
+                    import pdb; pdb.set_trace()
                 # Loop on all odoo order line for manage sync mode
                 if order_id in DB_line:
                     # [ID, finded, product_id, deadline, q., maked, state]                    
@@ -318,7 +317,6 @@ class SaleOrderSql(orm.Model):
                             
                             # 4 case (all not B, all B, not B-B, B-not B                            
                             if oc_line['IST_RIGA_SOSP'] == 'B':
-                            
                                 if element[1]: # not B first or error
                                     del data['product_uom_qty'] # leave prev.
                                     mod = line_pool.write(
@@ -357,9 +355,19 @@ class SaleOrderSql(orm.Model):
                                          
                 # TODO >>> 1 tab forward?
                 # Create record, not found: (product_id-date_deadline)
-                if not mod: 
+                if not mod:
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
+                    # Add record for other elements:
+                    DB_line[ol.order_id.id].append([
+                        oc_line_id,
+                        True, 
+                        data.get('product_id', False),
+                        data.get('date_deadline', False),
+                        data.get('product_uom_qty', 0.0),
+                        data.get('product_uom_maked_qty', 0.0),
+                        data.get('sync_state', False), # TODO change?
+                        ], )
 
             except:
                 _logger.error("Problem with oc line record: %s\n%s" % (
@@ -367,7 +375,6 @@ class SaleOrderSql(orm.Model):
                     sys.exc_info()
                 ))
 
-        import pdb; pdb.set_trace()
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
         _logger.info("End importation OC header and line!")
         return
