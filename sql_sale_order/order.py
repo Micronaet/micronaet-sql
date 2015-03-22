@@ -309,6 +309,7 @@ class SaleOrderSql(orm.Model):
                     #TODO totalize all key line for duplications
                      
                     # 4 case (all not B, all B, not B-B, B-not B                            
+                    # TODO test instead of writing for speed up
                     if oc_line['IST_RIGA_SOSP'] == 'B':
                         if element[1]: # not B first or error
                             del data['product_uom_qty'] # leave prev.
