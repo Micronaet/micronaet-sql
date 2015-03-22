@@ -64,6 +64,7 @@ class SaleOrderSql(orm.Model):
     def schedule_etl_sale_order(self, cr, uid, context=None):
         """Import OC and create sale.order
         """        
+
         _logger.info("Start import OC header")
         query_pool = self.pool.get('micronaet.accounting')
         empty_date = query_pool.get_empty_date()
@@ -193,6 +194,7 @@ class SaleOrderSql(orm.Model):
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
 
+        import pdb; pdb.set_trace()
         # Mark as closed order not present in accounting:
         # Rule: order before - order update = order to delete
         if order_ids:
@@ -238,10 +240,9 @@ class SaleOrderSql(orm.Model):
             _logger.error("Cannot connect to MSSQL OC_RIGHE")
             return
             
+        import pdb; pdb.set_trace()
         for oc_line in cr_oc_line:
             try:
-                if oc_line['CDS_VARIAZ_ART'] == 'B':
-                    continue # TODO jump B line? (only for warning check)
                 oc_key = get_oc_key(oc_line)
                 if oc_key not in oc_header:
                     _logger.error(
@@ -273,7 +274,7 @@ class SaleOrderSql(orm.Model):
                 quantity = (oc_line['NGB_COLLI'] or 1.0) * (
                     oc_line['NQT_RIGA_O_PLOR'] or 0.0) * 1.0 / conversion
 
-                # Save deadline in OC header (only first time):
+                # HEADER: Save deadline in OC (only first time):
                 if not oc_header[oc_key][1]:
                     # take the first deadline and save in header
                     if date_deadline:
@@ -296,9 +297,6 @@ class SaleOrderSql(orm.Model):
                         (6, 0, [product_browse.taxes_id[0].id, ])
                         ] if product_browse and product_browse.taxes_id
                             else False, # CSG_IVA
-                    #'production_line': True,
-                    #    product_browse.supply_method == 'produce', #TODO <<<< vedere come fare a capire se è di produzione
-                    #'to_produce': True,
                     'date_deadline': date_deadline,
                     'order_id': order_id,
                     'sequence': sequence, # id of row (not order field)
@@ -308,32 +306,58 @@ class SaleOrderSql(orm.Model):
                 # Syncronization part:
                 # --------------------
                 mod = False
+                
+                # Loop on all odoo order line for manage sync mode
                 if order_id in DB_line:
-                    # list of all the order line in OpenERP 
                     # [ID, finded, product_id, deadline, q., maked, state]                    
-                    for element in DB_line[order_id]: # All line in odoo order
-                        # product and deadline
-                        if (element[1] == False and
-                            element[2] == product_browse.id and
-                            date_deadline == element[3]):
-
-                            #TODO if oc_line['CDS_VARIAZ_ART'] = 'B' # Susp. line
-                            #    # Postulate: maked = this q!
-                            
-                            # Approx test:
-                            #if abs(element[4] - quantity) < 1.0: # Q. different
-                            data["accounting_state"] = "new"
-                            element[1] = True # set this line as assigned!
-                            #else:
-                            #    data["accounting_state"] = "modified"
-
-                            # Modify record:
+                    for element in DB_line[order_id]:
+                        # product and deadline                        
+                        if (element[2] == product_browse.id and
+                                date_deadline == element[3]):
                             oc_line_id = element[0]
-                            mod = line_pool.write(
-                                cr, uid, oc_line_id, data, context=context)
-                            break # exit this for (no other lines as analyzed)
+                            
+                            # 4 case (all not B, all B, not B-B, B-not B                            
+                            if oc_line['IST_RIGA_SOSP'] == 'B':
+                            
+                                if element[1]: # not B first or error
+                                    del data['product_uom_qty'] # leave prev.
+                                    mod = line_pool.write(
+                                        cr, uid, oc_line_id, data, 
+                                        context=context)                                    
+                                else: # Create B line
+                                    element[1] = True # set line as assigned!
+                                    data['product_uom_maked_qty'] = data[
+                                        'product_uom_qty']
+                                    mod = line_pool.write(
+                                        cr, uid, oc_line_id, data, 
+                                        context=context)
+                                    # sync_state = ?                                    
+                            else: # Line not produced:
+                            
+                                if element[1]: # error or B created first
+                                    # TODO check if B case else error dup. key!
+                                    mod = line_pool.write(
+                                        cr, uid, oc_line_id, data, 
+                                        context=context)
+                                else:
+                                    # TODO Approx test:
+                                    #if abs(element[4] - quantity) < 1.0: 
+                                    # Q. different
+                                    
+                                    # TODO check variation q for production el.
+                                    data["accounting_state"] = "new" # TODO serve?
+                                    element[1] = True # set line as assigned!
+                                    #else:
+                                    #    data["accounting_state"] = "modified"
 
-                if not mod: # Create record, not found: (product_id-date_deadline)
+                                    # Modify record:
+                                    mod = line_pool.write(
+                                        cr, uid, oc_line_id, data, 
+                                        context=context)
+                                         
+                # TODO >>> 1 tab forward?
+                # Create record, not found: (product_id-date_deadline)
+                if not mod: 
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
 
@@ -343,6 +367,7 @@ class SaleOrderSql(orm.Model):
                     sys.exc_info()
                 ))
 
+        import pdb; pdb.set_trace()
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
         _logger.info("End importation OC header and line!")
         return
