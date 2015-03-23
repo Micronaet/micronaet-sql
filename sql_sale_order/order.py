@@ -106,15 +106,15 @@ class SaleOrderSql(orm.Model):
                     oc['NGL_DOC'],
                     oc['DTT_DOC'].strftime("%Y"),
                     )
-                oc_id = self.search(cr, uid, [
+                oc_ids = self.search(cr, uid, [
                     ('name', '=', name),
                     ('accounting_order', '=', True)
                     ], context=context)
-                if oc_id:
+                if oc_ids:
                     # --------------------
                     # Update header order:
                     # --------------------
-                    oc_id = oc_id[0]
+                    oc_id = oc_ids[0]
                     if oc_id not in updated_ids:
                         updated_ids.append(oc_id)
 
@@ -156,7 +156,7 @@ class SaleOrderSql(orm.Model):
                                     #'employee': False,
                                     'parent_id': False,
                                     'sql_customer_code': oc['CKY_CNT_CLFR'],
-                                }, context=context)
+                                    }, context=context)
                             # TODO reload partner_proxy function?    
                         except:
                              _logger.error(
@@ -183,7 +183,7 @@ class SaleOrderSql(orm.Model):
                                 partner_proxy else 1,  # TODO put default!
                         #'partner_invoice_id': partner_id,
                         #'partner_shipping_id': partner_id, # TODO if present?
-                    }, context=context)
+                        }, context=context)
 
                 # Save reference for lines (deadline purpose):
                 oc_key = get_oc_key(oc)
@@ -235,16 +235,23 @@ class SaleOrderSql(orm.Model):
         if not cr_oc_line:
             _logger.error("Cannot connect to MSSQL OC_RIGHE")
             return
-            
+        
+        i = 0    
         for oc_line in cr_oc_line:
             try:
+                i += 1
+                if i % 100 == 0:
+                    _logger.error("Sync %s lines" % i)
+                    
                 oc_key = get_oc_key(oc_line)
                 if oc_key not in oc_header:
                     _logger.error(
                         "Header order not found: OC-%s" % (oc_key[2]))
                     continue
 
+                # -----------------------------
                 # Get product browse from code:
+                # -----------------------------
                 product_browse = browse_product_ref(
                     self, cr, uid, oc_line['CKY_ART'].strip(), context=context)
                 if not product_browse:
@@ -259,7 +266,7 @@ class SaleOrderSql(orm.Model):
                         'DTT_SCAD'] and oc_line[
                             'DTT_SCAD'] != empty_date else False
 
-                # NOTE this is ID of line in OC (not sequence=order)
+                # NOTE ID of line in OC (not sequence=order)
                 sequence = oc_line['NPR_RIGA']
                 uom_id = product_browse.uom_id.id if product_browse else False
                 conversion = (
@@ -416,6 +423,7 @@ class sale_order_line_extra(osv.osv):
             #domain=[('is_family', '=', True)],
             readonly=True),            
         
+        'account_id': fields.integer('Account ID'), # TODO not used, for sync
         #'partner_id': fields.related(
         #    'order_id','partner_id', type='many2one', relation='res.partner',
         #    string='Partner', store=True),
