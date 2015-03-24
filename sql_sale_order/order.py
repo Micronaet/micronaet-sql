@@ -43,6 +43,8 @@ _logger = logging.getLogger(__name__)
 
 class SaleOrderSql(orm.Model):
     """Update basic obiect for import accounting elements
+       NOTE: in this procedure there's some fields that are created
+             from another module, TODO correct for keep module "modular"
     """
 
     _inherit = "sale.order"
@@ -241,7 +243,7 @@ class SaleOrderSql(orm.Model):
             try:
                 i += 1
                 if i % 100 == 0:
-                    _logger.error("Sync %s lines" % i)
+                    _logger.info("Sync %s lines" % i)
                     
                 oc_key = get_oc_key(oc_line)
                 if oc_key not in oc_header:
@@ -327,6 +329,8 @@ class SaleOrderSql(orm.Model):
                             element[1] = True # set line as assigned!
                             data['product_uom_maked_qty'] = data[
                                 'product_uom_qty']
+                            data['product_uom_maked_sync_qty'] = data[
+                                'product_uom_qty']
                             line_pool.write(
                                 cr, uid, oc_line_id, data, 
                                 context=context)
@@ -360,6 +364,7 @@ class SaleOrderSql(orm.Model):
                         True, 
                         data.get('product_uom_qty', 0.0),
                         data.get('product_uom_maked_qty', 0.0),
+                        data.get('product_uom_maked_sync_qty', 0.0),
                         data.get('sync_state', False), # TODO change?
                         ]
             except:
