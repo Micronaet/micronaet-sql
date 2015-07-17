@@ -176,7 +176,7 @@ class res_partner(orm.Model):
                     #company_proxy.sql_supplier_from_code, 
                     #company_proxy.sql_supplier_to_code,
                     #'supplier_destination'),                     
-                    ]
+                    ])
                     
             # -----------------------------------------------------------------
             # Add parent for destination in required:
@@ -253,9 +253,7 @@ class res_partner(orm.Model):
                             data['type'] = 'default'
 
                         # Destination or cust/supp destination
-                        if address_link and \
-                                (block == 'destination' or \ # is dest.
-                                ref in destination_parents): # c/s but destin.
+                        if address_link and (block == 'destination' or ref in destination_parents):
                             data['type'] = 'delivery'
                             data['is_address'] = True
                             
@@ -288,15 +286,14 @@ class res_partner(orm.Model):
                             cr, uid, domain, context=context)
 
                         # Search per vat (only for customer and supplier)
-                        if (sync_vat and not partner_ids 
-                                and block in ('customer', 'supplier'): 
+                        if sync_vat and not partner_ids and block in ('customer', 'supplier'): 
                             partner_ids = self.search(cr, uid, [
                                 ('vat', '=', record['CSG_PIVA'])])
 
                         if len(partner_ids) > 1:
                             _logger.warning(
                                 'Found more than one key: %s (%s)' % (
-                                    key, len(partner_ids))
+                                    key, len(partner_ids)))
 
                         # -----------------------------------------------------
                         # Update / Create
