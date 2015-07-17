@@ -158,28 +158,6 @@ class micronaet_accounting(orm.Model):
                 sys.exc_info(), ))
             return False  # Error return nothing
 
-    def get_parent_partner(self, cr, uid, context=None):
-        ''' Parent partner code for destination
-            Table: PC_CONDIZIONI_COMM
-        '''
-        table = "pc_condizioni_comm"
-        if self.pool.get('res.company').table_capital_name(
-                cr, uid, context=context):
-            table = table.upper()
-
-        cursor = self.connect(cr, uid, context=context)
-        try:#                        ID       Description
-            cursor.execute("""
-                SELECT CKY_CNT, CKY_CNT_CLI_FATT 
-                FROM %s WHERE CKY_CNT_CLI_FATT != '';""" % (
-                    table, ))
-            return cursor # with the query setted up                  
-        except: 
-            _logger.error("Executing query %s: [%s]" % (
-                table,
-                sys.exc_info(), ))
-            return False  # Error return nothing
-
     # ----------
     #  PARTNER -
     # ---------
@@ -264,6 +242,28 @@ class micronaet_accounting(orm.Model):
                 table,
                 sys.exc_info(), ))
             return False  # Error return nothing
+
+    def get_parent_partner(self, cr, uid, context=None):
+        ''' Parent partner code for destination
+            Table: PC_CONDIZIONI_COMM
+        '''
+        table = "pc_condizioni_comm"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)
+        try:
+            cursor.execute("""
+                SELECT CKY_CNT, CKY_CNT_CLI_FATT 
+                FROM %s 
+                WHERE CKY_CNT_CLI_FATT != '';""" % table)
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False
 
     # -----------
     #  PRODUCTS -

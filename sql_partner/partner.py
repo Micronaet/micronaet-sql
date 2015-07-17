@@ -106,15 +106,28 @@ class res_partner(orm.Model):
     def schedule_sql_partner_import(self, cr, uid, verbose_log_count=100, 
             capital=True, write_date_from=False, write_date_to=False, 
             create_date_from=False, create_date_to=False, sync_vat=False,
-            address_link=False, only_block=False, context=None):
+            address_link=False, only_block=False, dest_merged=False, 
+            context=None):
         ''' Import partner from external DB
+        
             verbose_log_count: number of record for verbose log (0 = nothing)
+            write_date_to: sync only modify element from
+            write_date_from: sync only modify element to
+            create_date_from: sync only create element from
+            create_date_to: sync only create element to
+            sync_vat: Merge supplier with partner if vat was fount
             capital: if table has capital letters (usually with mysql in win)
+            address_link: partner has address (module to be installed)
+            only_block: 'destination', 'customer', 'supplier'
+            dest_merged: if destination has same code of customer / supplier
         '''
         
         # Load country for get ID from code
-        countries = {}
         country_pool = self.pool.get('res.country')
+        countries = {}
+
+        sql_pool = self.pool.get('micronaet.accounting')
+        
         country_ids = country_pool.search(cr, uid, [], context=context)
         country_proxy = country_pool.browse(
             cr, uid, country_ids, context=context)
@@ -147,16 +160,32 @@ class res_partner(orm.Model):
                 company_proxy.sql_destination_from_code, 
                 company_proxy.sql_destination_to_code,
                 'destination'),
-            ]
-            parents = {}
-            destination_parents = {}
-            
+                ]
+            if dest_merged: # dest has same code of customer or supplier
+                import_loop.extend([        
+                    # Extra step for customer destination:               
+                    (4,
+                    'sql_destination_code', 
+                    company_proxy.sql_customer_from_code, 
+                    company_proxy.sql_customer_to_code,
+                    'customer_destination'),
+                     
+                    # Extra step for supplier destination:               
+                    #(5,
+                    #'sql_destination_code', 
+                    #company_proxy.sql_supplier_from_code, 
+                    #company_proxy.sql_supplier_to_code,
+                    #'supplier_destination'),                     
+                    ]
+                    
+            # -----------------------------------------------------------------
             # Add parent for destination in required:
+            # -----------------------------------------------------------------
+            parents = {}
+            destination_parents = {}            
             if address_link:
                 _logger.info('Read parent for destinations')
-                cursor = self.pool.get(
-                        'micronaet.accounting').get_parent_partner(
-                            cr, uid, context=context)
+                cursor = sql_pool.get_parent_partner(cr, uid, context=context)
                 if not cursor:
                     _logger.error("Unable to connect to parent (destination)!")
                 else:
@@ -168,7 +197,7 @@ class res_partner(orm.Model):
                 if only_block and only_block != block:                    
                     _logger.warning("Jump block: %s!" % block)
                     continue
-                cursor = self.pool.get('micronaet.accounting').get_partner(
+                cursor = sql_pool.get_partner(
                     cr, uid, from_code=from_code, to_code=to_code, 
                     write_date_from=write_date_from, 
                     write_date_to=write_date_to, 
@@ -186,12 +215,13 @@ class res_partner(orm.Model):
                     i += 1
                     if verbose_log_count and i % verbose_log_count == 0:
                         _logger.info('%s: %s record imported / updated!' % (
-                            block, i, ))                             
+                            block, i))                             
                         
                     try:
+                        ref = record['CKY_CNT']
                         data = {
                             'name': record['CDS_CNT'],
-                            #'sql_customer_code': record['CKY_CNT'],
+                            #'sql_customer_code': ref,
                             'sql_import': True,
                             'is_company': True,
                             'street': record['CDS_INDIR'] or False,
@@ -208,24 +238,33 @@ class res_partner(orm.Model):
                                 'CKY_PAESE'], False),
                             }
                         
-                        if block == 'customer': 
+                        domain = [(key_field, '=', ref)]
+                        # Customer not destination:                        
+                        if block == 'customer' and (
+                                ref not in destination_parents): 
                             data['customer'] = True
                             data['type'] = 'default'
-                            data['ref'] = record['CKY_CNT']
+                            data['ref'] = ref
 
-                        if block == 'supplier': 
+                        # Supplier not destination:
+                        if block == 'supplier'and (
+                                ref not in destination_parents): 
                             data['supplier'] = True
                             data['type'] = 'default'
 
-                        if address_link and block == 'destination': 
-                            data['type'] = 'delivery' 
+                        # Destination or cust/supp destination
+                        if address_link and \
+                                (block == 'destination' or \ # is dest.
+                                ref in destination_parents): # c/s but destin.
+                            data['type'] = 'delivery'
                             data['is_address'] = True
                             
-                            parent_code = destination_parents.get(
-                                record['CKY_CNT'])
+                            parent_code = destination_parents.get(ref)
                             if parent_code:
+                                # as customer / supplier are loaded before:
                                 data['parent_id'] = parents.get(
                                     parent_code, False)
+                                    
                                 # if not in convert dict try to search
                                 if not data['parent_id']:
                                     parent_ids = self.search(cr, uid, ['|',
@@ -236,17 +275,27 @@ class res_partner(orm.Model):
                                         ], context=context)
                                     if parent_ids:
                                         data['parent_id'] = parent_ids[0]
+                            # Extra domain for search also in cust. / suppl.
+                            if dest_merged: 
+                                domain = [
+                                    '|', '|',
+                                    ('sql_customer_code', '=', key),
+                                    ('sql_supplier_code', '=', key),
+                                    ('sql_destination_code', '=', key),
+                                    ]
 
-                        partner_ids = self.search(cr, uid, [
-                            (key_field, '=', record['CKY_CNT'])])
+                        partner_ids = self.search(
+                            cr, uid, domain, context=context)
 
                         # Search per vat (only for customer and supplier)
                         if (sync_vat and not partner_ids 
-                                and block != 'destination'): 
+                                and block in ('customer', 'supplier'): 
                             partner_ids = self.search(cr, uid, [
                                 ('vat', '=', record['CSG_PIVA'])])
 
+                        # -----------------------------------------------------
                         # Update / Create
+                        # -----------------------------------------------------
                         if partner_ids:
                             try:
                                 partner_id = partner_ids[0]
@@ -276,9 +325,10 @@ class res_partner(orm.Model):
                                         '%s. Error create partner [%s]: %s' % (
                                             i, partner_id, sys.exc_info()))
                                     continue
-        
-                        if address_link and block != 'destination':
-                            parents[record['CKY_CNT']] = partner_id
+
+                        # Save referente for destination:
+                        if address_link and block in ('supplier', 'customer'):
+                            parents[ref] = partner_id
 
                     except:
                         _logger.error(

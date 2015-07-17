@@ -122,11 +122,6 @@ class SaleOrderSql(orm.Model):
 
                     oc_proxy = self.browse(cr, uid, oc_id, context=context)
 
-                    # Possible error during importation:
-                    #   1. partner not the same,
-                    #   2. deadline changed (see in the line for value),
-                    #   3. record deleted (after)
-                    
                     # TODO:
                     header = {}
                     if header: # TODO not working for now, is necessary?
@@ -222,12 +217,13 @@ class SaleOrderSql(orm.Model):
                 pass # TODO raise error?
                 # TODO test if present b or not b else error!
                 
+            # TODO test if is present: ol.product_uom_maked_qty  
             DB_line[key] = [
-                ol.id,                     # ID
-                False,                     # finded
-                ol.product_uom_qty,        # q.
-                ol.product_uom_maked_qty,  # q. maked (partial prod or tot)
-                ol.sync_state,             # state for production-accounting
+                ol.id,               # ID
+                False,               # finded
+                ol.product_uom_qty,  # q. total
+                0.0,                 # counter: product_uom_maked_sync_qty,
+                ol.sync_state,       # syncro state
                 ]
 
         # -------------------------
@@ -238,7 +234,7 @@ class SaleOrderSql(orm.Model):
             _logger.error("Cannot connect to MSSQL OC_RIGHE")
             return
         
-        i = 0    
+        i = 0
         for oc_line in cr_oc_line:
             try:
                 i += 1
@@ -287,29 +283,38 @@ class SaleOrderSql(orm.Model):
                             'date_deadline': date_deadline}, context=context)
 
                 # common part of record (update/create):
+                # create / update data
                 data = {
-                    'name': oc_line['CDS_VARIAZ_ART'],
-                    'product_id': product_browse.id,
-                    'family_id': product_browse.product_tmpl_id.family_id.id 
-                        if (product_browse.product_tmpl_id and 
-                            product_browse.product_tmpl_id.family_id) \
-                        else False,
                     'product_uom_qty': quantity,
+                    'order_id': order_id,
+                    }
+                data_create = {
+                    'product_id': product_browse.id,
+                    'date_deadline': date_deadline,
                     'product_uom': uom_id,
-                    'price_unit': (oc_line['NPZ_UNIT'] or 0.0) * conversion,
+                    'name': oc_line['CDS_VARIAZ_ART'],
+                    'family_id': 
+                        product_browse.product_tmpl_id.family_id.id 
+                           if (product_browse.product_tmpl_id and 
+                               product_browse.product_tmpl_id.family_id) \
+                           else False,
+                    'price_unit': (
+                        oc_line['NPZ_UNIT'] or 0.0) * conversion,
                     'tax_id': [
                         (6, 0, [product_browse.taxes_id[0].id, ])
                         ] if product_browse and product_browse.taxes_id
                             else False, # CSG_IVA
-                    'date_deadline': date_deadline,
-                    'order_id': order_id,
-                    'sequence': sequence, # id of row (not order field)
+                    'sequence': sequence,        
                     }
-                
+                        
                 # --------------------
                 # Syncronization part:
                 # --------------------
-                key = (order_id, data['product_id'], data['date_deadline'])
+                key = (
+                    order_id, 
+                    data_create['product_id'], 
+                    data_create['date_deadline'], )
+
                 # Loop on all odoo order line for manage sync mode
                 if key in DB_line:
                     # [ID, finded, q., maked, state]                    
@@ -320,52 +325,45 @@ class SaleOrderSql(orm.Model):
                     # 4 case (all not B, all B, not B-B, B-not B                            
                     # TODO test instead of writing for speed up
                     if oc_line['IST_RIGA_SOSP'] == 'B':
-                        if element[1]: # not B first or error
+                        element[3] += data['product_uom_qty'] # counter
+                        data['product_uom_maked_sync_qty'] = element[3]
+                        if element[1]: # TODO not B first or error??
                             del data['product_uom_qty'] # leave prev.
-                            line_pool.write(
-                                cr, uid, oc_line_id, data, 
-                                context=context)                                    
                         else: # Create B line
                             element[1] = True # set line as assigned!
-                            data['product_uom_maked_qty'] = data[
-                                'product_uom_qty']
-                            data['product_uom_maked_sync_qty'] = data[
-                                'product_uom_qty']
-                            line_pool.write(
-                                cr, uid, oc_line_id, data, 
-                                context=context)
-                            # sync_state = ?                                    
-                    else: # Line not produced:                    
-                        if element[1]: # error or B created first
-                            # TODO check if B case else error dup. key!
-                            line_pool.write(
-                                cr, uid, oc_line_id, data, 
-                                context=context)
-                        else:
-                            # TODO Approx test:
+                        line_pool.write(
+                            cr, uid, oc_line_id, data, 
+                            context=context)
+                            # TODO sync_state = ?
+                    else: # Line not produced:              
+                        data['sequence'] = sequence # only with no B line
+      
+                        if not element[1]: # error or B created first
                             #if abs(element[4] - quantity) < 1.0: 
-                            # Q. different
-                            
-                            # TODO check variation q for production el.
-                            data["accounting_state"] = "new" # TODO serve?
+                            #data["accounting_state"] = "new" # TODO serve?
                             element[1] = True # set line as assigned!
-                            #else:
-                            #    data["accounting_state"] = "modified"
 
                             # Modify record:
-                            line_pool.write(
-                                cr, uid, oc_line_id, data, 
-                                context=context)
+                        line_pool.write(
+                            cr, uid, oc_line_id, data, 
+                            context=context)
                 else: # Create record, not found: (product_id-date_deadline)
+                    # Update record with value for creation:                    
+                    data.update(data_create)
+                    if oc_line['IST_RIGA_SOSP'] == 'B':
+                        account_maked = data.get('product_uom_qty', 0.0)
+                        data['product_uom_maked_sync_qty'] = account_maked
+                    else:
+                        account_maked = 0.0
+                        
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
                     DB_line[key] = [
                         oc_line_id,
                         True, 
                         data.get('product_uom_qty', 0.0),
-                        data.get('product_uom_maked_qty', 0.0),
-                        data.get('product_uom_maked_sync_qty', 0.0),
-                        data.get('sync_state', False), # TODO change?
+                        account_maked, #product_uom_maked_sync_qty
+                        '', #data.get('sync_state', False), # TODO change?
                         ]
             except:
                 _logger.error("Problem with oc line record: %s\n%s" % (

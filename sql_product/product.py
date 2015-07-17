@@ -40,10 +40,9 @@ from openerp.tools import (DEFAULT_SERVER_DATE_FORMAT,
 
 _logger = logging.getLogger(__name__)
 
-class product_product(orm.Model):
+class ProductProduct(orm.Model):
     ''' Extend product.product
     '''    
-    _name = 'product.product'
     _inherit = 'product.product'
     
     _columns = {
@@ -107,7 +106,7 @@ class product_product(orm.Model):
                 create_date_to=create_date_to, context=context) 
             if not cursor:
                 _logger.error(
-                    "Unable to connect no importation of package list for product!")
+                    "Unable to connect no importation of packing for product!")
                 return False
 
             i = 0
@@ -133,7 +132,8 @@ class product_product(orm.Model):
                         ),
                     }
                     # Test if is to manufacture
-                    if manufacture and record['NKY_STRUTT_ART'] in to_manufacture:
+                    if manufacture and record[
+                            'NKY_STRUTT_ART'] in to_manufacture:
                         data['route_ids'] = manufacture
                         
                     if accounting_pool.is_active(record):
