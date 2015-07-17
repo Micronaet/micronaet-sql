@@ -286,6 +286,10 @@ class res_partner(orm.Model):
 
                         partner_ids = self.search(
                             cr, uid, domain, context=context)
+                        if len(partner_ids) > 1:
+                            _logger.warning(
+                                'Found more than one key: %s (%s)' % (
+                                    key, len(partner_ids))
 
                         # Search per vat (only for customer and supplier)
                         if (sync_vat and not partner_ids 
