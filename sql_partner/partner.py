@@ -264,7 +264,6 @@ class res_partner(orm.Model):
 
                         # Destination or cust/supp destination
                         elif address_link and ref in destination_parents:
-                            import pdb; pdb.set_trace()
                             data['type'] = 'delivery'
                             data['is_address'] = True
                             
