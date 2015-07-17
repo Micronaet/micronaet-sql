@@ -239,11 +239,17 @@ class res_partner(orm.Model):
                                 'CKY_PAESE'], False),
                             }
                         
+                        # Cust / Supp not destination
                         if block in ('customer', 'supplier') and (
                                 ref in destination_parents): 
                             # will be written in extra bloc
-                            continue    
+                            continue
 
+                        # Destination with parent found    
+                        if block not in ('customer', 'supplier') and (
+                                ref not in destination_parents): 
+                            continue
+                            
                         domain = [(key_field, '=', ref)]
                         # Customer not destination:                        
                         if block == 'customer': 
@@ -258,6 +264,7 @@ class res_partner(orm.Model):
 
                         # Destination or cust/supp destination
                         elif address_link and ref in destination_parents:
+                            import pdb; pdb.set_trace()
                             data['type'] = 'delivery'
                             data['is_address'] = True
                             
