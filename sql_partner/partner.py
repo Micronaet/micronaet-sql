@@ -121,7 +121,7 @@ class res_partner(orm.Model):
             only_block: 'destination', 'customer', 'supplier'
             dest_merged: if destination has same code of customer / supplier
         '''
-        
+
         # Load country for get ID from code
         country_pool = self.pool.get('res.country')
         countries = {}
@@ -197,6 +197,7 @@ class res_partner(orm.Model):
                 if only_block and only_block != block:                    
                     _logger.warning("Jump block: %s!" % block)
                     continue
+                import pdb; pdb.set_trace() 
                 cursor = sql_pool.get_partner(
                     cr, uid, from_code=from_code, to_code=to_code, 
                     write_date_from=write_date_from, 
@@ -238,22 +239,25 @@ class res_partner(orm.Model):
                                 'CKY_PAESE'], False),
                             }
                         
+                        if block in ('customer', 'supplier') and (
+                                ref in destination_parents): 
+                            # will be written in extra bloc
+                            continue    
+
                         domain = [(key_field, '=', ref)]
                         # Customer not destination:                        
-                        if block == 'customer' and (
-                                ref not in destination_parents): 
+                        if block == 'customer': 
                             data['customer'] = True
                             data['type'] = 'default'
                             data['ref'] = ref
 
                         # Supplier not destination:
-                        if block == 'supplier'and (
-                                ref not in destination_parents): 
+                        elif block == 'supplier': 
                             data['supplier'] = True
                             data['type'] = 'default'
 
                         # Destination or cust/supp destination
-                        if address_link and (block == 'destination' or ref in destination_parents):
+                        elif address_link and ref in destination_parents:
                             data['type'] = 'delivery'
                             data['is_address'] = True
                             
@@ -275,12 +279,17 @@ class res_partner(orm.Model):
                                         data['parent_id'] = parent_ids[0]
                             # Extra domain for search also in cust. / suppl.
                             if dest_merged: 
-                                domain = [
+                                # Search all for correct  startup error of imp.
+                                domain = [ 
                                     '|', '|',
-                                    ('sql_customer_code', '=', key),
-                                    ('sql_supplier_code', '=', key),
-                                    ('sql_destination_code', '=', key),
+                                    ('sql_customer_code', '=', ref),
+                                    ('sql_supplier_code', '=', ref),
+                                    ('sql_destination_code', '=', ref),
                                     ]
+                        else:
+                            _logger.error(
+                                'Destination: %s without parent code' % ref)
+                            continue
 
                         partner_ids = self.search(
                             cr, uid, domain, context=context)
@@ -293,7 +302,7 @@ class res_partner(orm.Model):
                         if len(partner_ids) > 1:
                             _logger.warning(
                                 'Found more than one key: %s (%s)' % (
-                                    key, len(partner_ids)))
+                                    ref, len(partner_ids)))
 
                         # -----------------------------------------------------
                         # Update / Create
