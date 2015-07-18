@@ -122,12 +122,11 @@ class res_partner(orm.Model):
             dest_merged: if destination has same code of customer / supplier
         '''
 
+        sql_pool = self.pool.get('micronaet.accounting')
+
         # Load country for get ID from code
         country_pool = self.pool.get('res.country')
         countries = {}
-
-        sql_pool = self.pool.get('micronaet.accounting')
-        
         country_ids = country_pool.search(cr, uid, [], context=context)
         country_proxy = country_pool.browse(
             cr, uid, country_ids, context=context)
@@ -181,8 +180,9 @@ class res_partner(orm.Model):
             # -----------------------------------------------------------------
             # Add parent for destination in required:
             # -----------------------------------------------------------------
+            # For link destination speedly:
             parents = {}
-            destination_parents = {}            
+            destination_parents = {}                 
             if address_link:
                 _logger.info('Read parent for destinations')
                 cursor = sql_pool.get_parent_partner(cr, uid, context=context)
@@ -194,7 +194,9 @@ class res_partner(orm.Model):
                             'CKY_CNT_CLI_FATT']
 
             for order, key_field, from_code, to_code, block in import_loop:
-                if only_block and only_block != block:                    
+                # If same from/to code or jump function enabled
+                if (only_block and only_block != block) or (
+                        from_code == to_code):
                     _logger.warning("Jump block: %s!" % block)
                     continue
                 import pdb; pdb.set_trace() 
@@ -220,9 +222,22 @@ class res_partner(orm.Model):
                         
                     try:
                         ref = record['CKY_CNT']
+                        
+                        # Cust / Supp not destination
+                        if block in ('customer', 'supplier') and (
+                                ref in destination_parents): 
+                            # will be written in extra bloc
+                            continue
+                        # Destination with parent found    
+                        if 'destination' in block and (
+                                ref not in destination_parents): 
+                            if block == 'destination':    
+                                _logger.error('Dest. without parent %s': key)
+                            continue
+
                         data = {
+                            key_field: ref,
                             'name': record['CDS_CNT'],
-                            #'sql_customer_code': ref,
                             'sql_import': True,
                             'is_company': True,
                             'street': record['CDS_INDIR'] or False,
@@ -234,21 +249,9 @@ class res_partner(orm.Model):
                             #'mobile': record['CDS_INDIR'] or False,
                             'website': record['CDS_URL_INET'] or False,
                             'vat': record['CSG_PIVA'] or False,
-                            key_field: record['CKY_CNT'], # key code
                             'country_id': countries.get(record[
                                 'CKY_PAESE'], False),
                             }
-                        
-                        # Cust / Supp not destination
-                        if block in ('customer', 'supplier') and (
-                                ref in destination_parents): 
-                            # will be written in extra bloc
-                            continue
-
-                        # Destination with parent found    
-                        if block not in ('customer', 'supplier') and (
-                                ref not in destination_parents): 
-                            continue
                             
                         domain = [(key_field, '=', ref)]
                         # Customer not destination:                        
@@ -262,12 +265,12 @@ class res_partner(orm.Model):
                             data['supplier'] = True
                             data['type'] = 'default'
 
-                        # Destination or cust/supp destination
-                        elif address_link and ref in destination_parents:
+                        # Destination or cust/supp destination (parent pres.)
+                        elif address_link: # and ref in destination_parents:
                             data['type'] = 'delivery'
                             data['is_address'] = True
                             
-                            parent_code = destination_parents.get(ref)
+                            parent_code = destination_parents[ref]
                             if parent_code:
                                 # as customer / supplier are loaded before:
                                 data['parent_id'] = parents.get(
@@ -283,6 +286,7 @@ class res_partner(orm.Model):
                                         ], context=context)
                                     if parent_ids:
                                         data['parent_id'] = parent_ids[0]
+
                             # Extra domain for search also in cust. / suppl.
                             if dest_merged: 
                                 # Search all for correct  startup error of imp.
@@ -293,15 +297,17 @@ class res_partner(orm.Model):
                                     ('sql_destination_code', '=', ref),
                                     ]
                         else:
-                            _logger.error(
-                                'Destination: %s without parent code' % ref)
+                            # TODO when we are here?
+                            #_logger.error(
+                            #    'Destination: %s without parent code' % ref)
                             continue
 
                         partner_ids = self.search(
                             cr, uid, domain, context=context)
 
                         # Search per vat (only for customer and supplier)
-                        if sync_vat and not partner_ids and block in ('customer', 'supplier'): 
+                        if sync_vat and not partner_ids and block in (
+                                'customer', 'supplier'): 
                             partner_ids = self.search(cr, uid, [
                                 ('vat', '=', record['CSG_PIVA'])])
 
@@ -317,12 +323,12 @@ class res_partner(orm.Model):
                             try:
                                 partner_id = partner_ids[0]
                                 self.write(cr, uid, partner_id, data, 
-                                    context = context)
+                                    context=context)
                             except:
                                 del(data['vat'])
                                 try: # Remove vat for vat check problems:
                                     self.write(cr, uid, partner_id, data, 
-                                        context = context)
+                                        context=context)
                                 except:    
                                     _logger.error(
                                         '%s. Error update partner [%s]: %s' % (
@@ -344,13 +350,13 @@ class res_partner(orm.Model):
                                     continue
 
                         # Save referente for destination:
-                        if address_link and block in ('supplier', 'customer'):
+                        if address_link and 'destination' not in block:
                             parents[ref] = partner_id
 
                     except:
                         _logger.error(
                             'Error importing partner [%s], jumped: %s' % (
-                                record['CDS_CNT'], sys.exc_info()))
+                                ref, sys.exc_info()))
                                             
                 _logger.info('All %s is updated!' % block)
         except:
