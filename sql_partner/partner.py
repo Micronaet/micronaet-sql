@@ -44,10 +44,9 @@ class res_company(orm.Model):
     ''' Extra fields for setup the module
     '''
 
-    _name = 'res.company'
     _inherit = 'res.company'
     
-    def get_from_to_dict(self, cr, uid, context = None):
+    def get_from_to_dict(self, cr, uid, context=None):
         ''' Return a company proxy for get from to clause
         '''        
         company_id = self.search(cr, uid, [], context = context)
@@ -79,13 +78,12 @@ class res_company(orm.Model):
 class res_partner(orm.Model):
     ''' Extend res.partner
     '''    
-    _name = 'res.partner'
     _inherit = 'res.partner'
     
     # -------------------------------------------------------------------------
     #                                 Utility
     # -------------------------------------------------------------------------
-    def get_partner_from_sql_code (self, cr, uid, code, context=None):
+    def get_partner_from_sql_code(self, cr, uid, code, context=None):
         ''' Return partner_id read from the import code passed
             (search in customer, supplier, destiantion)
         '''

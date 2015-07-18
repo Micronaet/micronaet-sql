@@ -43,8 +43,7 @@ _logger = logging.getLogger(__name__)
 class res_company(orm.Model):
     ''' Extra fields for res.company object
     '''
-    _name="res.company"
-    _inherit="res.company"
+    _inherit = 'res.company'
 
     # Button event:
     def test_database_connection(self, cr, uid, ids, context = None):
