@@ -232,7 +232,7 @@ class res_partner(orm.Model):
                         if 'destination' in block and (
                                 ref not in destination_parents): 
                             if block == 'destination':    
-                                _logger.error('Dest. without parent %s': key)
+                                _logger.error('Dest. without parent %s' % key)
                             continue
 
                         data = {
