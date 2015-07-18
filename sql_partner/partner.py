@@ -199,7 +199,7 @@ class res_partner(orm.Model):
                         from_code == to_code):
                     _logger.warning("Jump block: %s!" % block)
                     continue
-                import pdb; pdb.set_trace() 
+
                 cursor = sql_pool.get_partner(
                     cr, uid, from_code=from_code, to_code=to_code, 
                     write_date_from=write_date_from, 
@@ -288,7 +288,10 @@ class res_partner(orm.Model):
                                         data['parent_id'] = parent_ids[0]
 
                             # Extra domain for search also in cust. / suppl.
-                            if dest_merged: 
+                            if dest_merged:                              
+                                # Remove if import error in cust. / suppl.
+                                data['sql_customer_code'] = False
+                                data['sql_supplier_code'] = False
                                 # Search all for correct  startup error of imp.
                                 domain = [ 
                                     '|', '|',
