@@ -130,7 +130,24 @@ class res_partner(orm.Model):
             dest_merged: if destination has same code of customer / supplier
             set_lang: if True set lang depend on C E I values
         '''
-
+        _logger.info('''
+            Start import partner from SQL, setup:
+            Verbose: %s - Capital name: %s - Write form: %s - Write to: %s
+            Create from: %s - Create to: %s - Merge VAT partner: %s 
+            Has address partner: %s - Only block: %s - Merge dest.: %s 
+            Set lang: %s''' % (
+                verbose_log_count, 
+                capital, 
+                write_date_from, 
+                write_date_to, 
+                create_date_from, 
+                create_date_to, 
+                sync_vat,
+                address_link, 
+                only_block, 
+                dest_merged, 
+                set_lang,
+                ))
         sql_pool = self.pool.get('micronaet.accounting')
 
         # ---------------------------------------------------------------------
