@@ -81,7 +81,7 @@ class ProductProduct(orm.Model):
     # -------------------------------------------------------------------------
     def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, 
             write_date_from=False, write_date_to=False, create_date_from=False,
-            create_date_to=False, context=None):
+            create_date_to=False, multi_lang=None, context=None):
         ''' Import product from external SQL DB
             self: instance
             cr: cursor
@@ -91,11 +91,17 @@ class ProductProduct(orm.Model):
             write_date_to: write to
             create_date_from: create from 
             create_date_to: create to
-            context: args passed
+            multi_lang: List of extra languade, ex.: {1: 'en_US'} where key
+                        is ID in accounting, value is language code
+            context: args passed            
         '''
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
 
+        if multi_lang is None:
+            multi_lang = False
+        product_translate = {} # for next translation
+            
         # --------------------------
         # Get route for manufacture: 
         # --------------------------
@@ -171,10 +177,45 @@ class ProductProduct(orm.Model):
                     else:
                         product_id = product_proxy.create(cr, uid, data, 
                             context=context)
+                    product_translate[default_code] = product_id # for transl.
                 except:
                     _logger.error('Error import product [%s], jumped: %s' % (
                         default_code, 
                         sys.exc_info(), ))
+            
+            # ------------------------
+            # Update translated terms:            
+            # ------------------------
+            if multi_lang:
+                for lang_code, lang in multi_lang.iteritems():
+                    context_lang = {'lang': lang, }
+                    cursor = self.get_product_quantity(
+                        cr, uid, lang_code, context=context)
+                    if not cursor:
+                        _logger.error("Cannot load cursor for %s" % lang)
+                        continue
+                    # Start update terms:
+                    i = 0
+                    for record in cursor:
+                        try:
+                            # Write new terms:
+                            default_code = record['CKY_ART']
+                            name = record['CDS_ART_LIN']
+                            if default_code not in product_translate:
+                                _logger.error(
+                                    'Code not found: %s' % default_code)
+                                continue # next
+                            product_pool.write(
+                                cr, uid, 
+                                product_translate[default_code],
+                                {'name': name}, 
+                                context=context_lang,
+                                )
+                        except:
+                            _logger.error(
+                                'Lang error: code: %s, jumped: %s' % (
+                                    default_code, 
+                                    sys.exc_info(), ))
                         
             _logger.info('All product is updated!')
         except:

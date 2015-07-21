@@ -328,6 +328,30 @@ class micronaet_accounting(orm.Model):
                 table,
                 sys.exc_info(), ))
             return False  # Error return nothing
+    
+    def get_product_quantity(self, cr, uid, lang_code, context=None):
+        ''' Return list of term in lang_code passed
+            Table: ah_des_art_lingua
+        '''
+        table = "ah_des_art_lingua"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+        
+        cursor = self.connect(cr, uid, context=context)
+        try:
+            cursor.execute("""
+                SELECT CKY_ART, NKY_LIN, CDS_ART_LIN 
+                FROM %s 
+                WHERE 
+                    NKY_LIN = '%s';""" % (
+                    table, lang_code))
+            return cursor
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False
 
     def get_product_quantity(self, cr, uid, store, year, context=None):
         ''' Return quantity element for product
