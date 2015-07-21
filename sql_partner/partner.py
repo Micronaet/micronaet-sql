@@ -84,8 +84,6 @@ class account_fiscal_position(orm.Model):
     _columns = {
         'account_CEI': fields.char('Italy, CEE, Extra CEE', size=1), 
         }
-    
-    
 
 class res_partner(orm.Model):
     ''' Extend res.partner
@@ -133,10 +131,31 @@ class res_partner(orm.Model):
         '''
 
         sql_pool = self.pool.get('micronaet.accounting')
+        fiscal_pool = self.pool.get('account.fiscal.position')
 
         # TODO Load account.fiscal.position with CEI fields
-        # 2. Read dict or try to set up link automatically
-        # 3. Load dict for associate fields in creation
+        # Load disc for convert account_CEI to fiscal position (or create link)
+        fiscal_positions = {}
+        fiscal_ids = fiscal_pool.search(cr, uid, [], context=context)
+        for item in fiscal_pool.browse(cr, uid, fiscal_ids, context=context):
+            if account_CEI:
+                fiscal_positions[account_CEI] = item.id
+            else:
+                if 'Italy' in item.name or 'Italia' in item.name:
+                    fiscal_pool.write(cr, uid, item.id, {
+                        'account_CEI': 'i',
+                        }, context=context)
+                    fiscal_positions['i'] = item.id
+                elif 'Extra' in item.name:
+                    fiscal_pool.write(cr, uid, item.id, {
+                        'account_CEI': 'e',
+                        }, context=context)
+                    fiscal_positions['e'] = item.id
+                elif 'Intra' in item.name:
+                    fiscal_pool.write(cr, uid, item.id, {
+                        'account_CEI': 'i',
+                        }, context=context)
+                    fiscal_positions['i'] = item.id
         
         # Load country for get ID from code
         country_pool = self.pool.get('res.country')
