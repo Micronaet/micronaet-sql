@@ -75,6 +75,18 @@ class res_company(orm.Model):
             readonly=False),
     }
 
+class account_fiscal_position(orm.Model):
+    ''' Link for fiscal position (accounting)
+    '''    
+    
+    _inherit = 'account.fiscal.position'
+    
+    _columns = {
+        'account_CEI': fields.char('Italy, CEE, Extra CEE', size=1), 
+        }
+    
+    
+
 class res_partner(orm.Model):
     ''' Extend res.partner
     '''    
@@ -122,6 +134,10 @@ class res_partner(orm.Model):
 
         sql_pool = self.pool.get('micronaet.accounting')
 
+        # TODO Load account.fiscal.position with CEI fields
+        # 2. Read dict or try to set up link automatically
+        # 3. Load dict for associate fields in creation
+        
         # Load country for get ID from code
         country_pool = self.pool.get('res.country')
         countries = {}
@@ -370,13 +386,11 @@ class res_partner(orm.Model):
     #                                 Columns
     # -------------------------------------------------------------------------
     _columns = {
-        'sql_import': fields.boolean('SQL import', required=False),
-        'sql_supplier_code': fields.char(
-            'SQL supplier code', size=10, required=False, readonly=False),
-        'sql_customer_code': fields.char(
-            'SQL customer code', size=10, required=False, readonly=False),
-        'sql_destination_code': fields.char(
-            'SQL destination code', size=10, required=False, readonly=False),
+        'sql_import': fields.boolean('SQL import'),
+        'sql_supplier_code': fields.char('SQL supplier code', size=10),
+        'sql_customer_code': fields.char('SQL customer code', size=10),
+        'sql_destination_code': fields.char('SQL destination code', size=10),
+        'account_CEI': fields.char('Italy, CEE, Extra CEE', size=1),
         }
     
     _defaults = {
