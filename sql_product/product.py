@@ -164,7 +164,7 @@ class ProductProduct(orm.Model):
                             _logger.warning('Multiple article: %s (%s)' % (
                                 default_code,
                                 len(product_ids), 
-                                )
+                                ))
                         product_id = product_ids[0]
                         product_proxy.write(cr, uid, product_id, data, 
                             context=context)
