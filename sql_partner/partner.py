@@ -115,7 +115,7 @@ class res_partner(orm.Model):
             capital=True, write_date_from=False, write_date_to=False, 
             create_date_from=False, create_date_to=False, sync_vat=False,
             address_link=False, only_block=False, dest_merged=False, 
-            context=None):
+            set_lang=False, context=None):
         ''' Import partner from external DB
         
             verbose_log_count: number of record for verbose log (0 = nothing)
@@ -128,14 +128,15 @@ class res_partner(orm.Model):
             address_link: partner has address (module to be installed)
             only_block: 'destination', 'customer', 'supplier'
             dest_merged: if destination has same code of customer / supplier
+            set_lang: if True set lang depend on C E I values
         '''
 
         sql_pool = self.pool.get('micronaet.accounting')
-        fiscal_pool = self.pool.get('account.fiscal.position')
 
         # ---------------------------------------------------------------------
         # Load disc for convert account_CEI to fiscal position (or create link)
         # ---------------------------------------------------------------------
+        fiscal_pool = self.pool.get('account.fiscal.position')
         fiscal_positions = {}
         fiscal_ids = fiscal_pool.search(cr, uid, [], context=context)
         for item in fiscal_pool.browse(cr, uid, fiscal_ids, context=context):
@@ -157,6 +158,16 @@ class res_partner(orm.Model):
                         'account_CEI': 'C',
                         }, context=context)
                     fiscal_positions['C'] = item.id
+
+        # -------------------------------
+        # Load language for setup default
+        # -------------------------------
+        lang_pool = self.pool.get('res.lang')
+        languages = {}
+        if set_lang:
+            lang_ids = lang_pool.search(cr, uid, [], context=context)
+            for item in lang_pool.browse(cr, uid, lang_ids, context=context):
+                languages[item.code] = item.id        
 
         # ---------------------------------
         # Load country for get ID from code
@@ -297,6 +308,16 @@ class res_partner(orm.Model):
                                 data['property_account_position'] = \
                                     fiscal_positions[account_CEI]
 
+                            # Set lang if requesta and account_CEI is set    
+                            if set_lang and account_CEI:
+                                if account_CEI in ('E', 'C') and \
+                                        'en_US' in languages:
+                                    data['lang'] = languages['en_US']
+                                elif account_CEI == 'I' and \ 
+                                        'it_IT' in languages:
+                                    data['lang'] = languages['it_IT']
+                                        
+
                         domain = [(key_field, '=', ref)]
                         # Customer not destination:                        
                         if block == 'customer': 
@@ -344,7 +365,7 @@ class res_partner(orm.Model):
                                     ('sql_destination_code', '=', ref),
                                     ]
                         else:
-                            # TODO when we are here?
+                            # TODO when are we here?
                             #_logger.error(
                             #    'Destination: %s without parent code' % ref)
                             continue
