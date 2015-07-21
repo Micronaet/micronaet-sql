@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Python compiled
+*.pyc
+
 # Temp files:
 *~
 
