@@ -133,31 +133,34 @@ class res_partner(orm.Model):
         sql_pool = self.pool.get('micronaet.accounting')
         fiscal_pool = self.pool.get('account.fiscal.position')
 
-        # TODO Load account.fiscal.position with CEI fields
+        # ---------------------------------------------------------------------
         # Load disc for convert account_CEI to fiscal position (or create link)
+        # ---------------------------------------------------------------------
         fiscal_positions = {}
         fiscal_ids = fiscal_pool.search(cr, uid, [], context=context)
         for item in fiscal_pool.browse(cr, uid, fiscal_ids, context=context):
-            if account_CEI:
-                fiscal_positions[account_CEI] = item.id
+            if item.account_CEI:
+                fiscal_positions[item.account_CEI.upper()] = item.id
             else:
                 if 'Italy' in item.name or 'Italia' in item.name:
                     fiscal_pool.write(cr, uid, item.id, {
-                        'account_CEI': 'i',
+                        'account_CEI': 'I',
                         }, context=context)
-                    fiscal_positions['i'] = item.id
+                    fiscal_positions['I'] = item.id
                 elif 'Extra' in item.name:
                     fiscal_pool.write(cr, uid, item.id, {
-                        'account_CEI': 'e',
+                        'account_CEI': 'E',
                         }, context=context)
-                    fiscal_positions['e'] = item.id
+                    fiscal_positions['E'] = item.id
                 elif 'Intra' in item.name:
                     fiscal_pool.write(cr, uid, item.id, {
-                        'account_CEI': 'i',
+                        'account_CEI': 'C',
                         }, context=context)
-                    fiscal_positions['i'] = item.id
-        
+                    fiscal_positions['C'] = item.id
+
+        # ---------------------------------
         # Load country for get ID from code
+        # ---------------------------------
         country_pool = self.pool.get('res.country')
         countries = {}
         country_ids = country_pool.search(cr, uid, [], context=context)
@@ -165,7 +168,7 @@ class res_partner(orm.Model):
             cr, uid, country_ids, context=context)
         for item in country_proxy:
             countries[item.code] = item.id
-            
+
         try:
             _logger.info('Start import SQL: customer, supplier, destination')
             company_pool = self.pool.get('res.company')
@@ -285,7 +288,15 @@ class res_partner(orm.Model):
                             'country_id': countries.get(record[
                                 'CKY_PAESE'], False),
                             }
-                            
+
+                        # CEI setup:    
+                        if record['IST_NAZ']:
+                            account_CEI = record['IST_NAZ'].upper()
+                            data['account_CEI'] = account_CEI
+                            if account_CEI in fiscal_positions:
+                                data['property_account_position'] = \
+                                    fiscal_positions[account_CEI]
+
                         domain = [(key_field, '=', ref)]
                         # Customer not destination:                        
                         if block == 'customer': 
