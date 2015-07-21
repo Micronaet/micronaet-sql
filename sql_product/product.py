@@ -172,6 +172,7 @@ class ProductProduct(orm.Model):
                                 len(product_ids), 
                                 ))
                         product_id = product_ids[0]
+                        # TODO check if lang is italian in normal cretion
                         product_proxy.write(cr, uid, product_id, data, 
                             context=context)
                     else:
