@@ -162,12 +162,13 @@ class res_partner(orm.Model):
         # -------------------------------
         # Load language for setup default
         # -------------------------------
-        lang_pool = self.pool.get('res.lang')
-        languages = {}
-        if set_lang:
-            lang_ids = lang_pool.search(cr, uid, [], context=context)
-            for item in lang_pool.browse(cr, uid, lang_ids, context=context):
-                languages[item.code] = item.id        
+        # TODO remove lang use 'it_IT' in res.partner
+        #lang_pool = self.pool.get('res.lang')
+        #languages = {}
+        #if set_lang:
+        #    lang_ids = lang_pool.search(cr, uid, [], context=context)
+        #    for item in lang_pool.browse(cr, uid, lang_ids, context=context):
+        #        languages[item.code] = item.id        
 
         # ---------------------------------
         # Load country for get ID from code
@@ -265,7 +266,7 @@ class res_partner(orm.Model):
                     i += 1
                     if verbose_log_count and i % verbose_log_count == 0:
                         _logger.info('%s: %s record imported / updated!' % (
-                            block, i))                             
+                            block, i))                       
                         
                     try:
                         ref = record['CKY_CNT']
@@ -310,14 +311,11 @@ class res_partner(orm.Model):
 
                             # Set lang if requesta and account_CEI is set    
                             if set_lang and account_CEI:
-                                if account_CEI in ('E', 'C') and \
-                                        'en_US' in languages:
-                                    data['lang'] = languages['en_US']
-                                elif account_CEI == 'I' and \ 
-                                        'it_IT' in languages:
-                                    data['lang'] = languages['it_IT']
+                                if account_CEI in ('E', 'C'):
+                                    data['lang'] = 'en_US'
+                                elif account_CEI == 'I':
+                                    data['lang'] = 'it_IT'
                                         
-
                         domain = [(key_field, '=', ref)]
                         # Customer not destination:                        
                         if block == 'customer': 
