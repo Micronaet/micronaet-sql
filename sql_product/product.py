@@ -48,21 +48,19 @@ class ProductProduct(orm.Model):
     _columns = {
         'sql_import': fields.boolean('SQL import', required=False),
         'accounting_structured': fields.char('Accounting structured', size=2),
-        'statistic_category': fields.char(
-            'Statistic category', size=10, 
-            required=False, readonly=False),
-    }
+        'statistic_category': fields.char('Statistic category', size=10),
+        }
     
     _defaults = {
         'sql_import': lambda *a: False,
         'statistic_category': lambda *x: False,
-    }
+        }
 
     def get_product_from_sql_code(self, cr, uid, code, context = None):
         ''' Return product_id read from the import code passed
             (all product also pre-deleted
         '''
-        product_ids = self.search(cr, uid, [('default_code', '=', code), ])
+        product_ids = self.search(cr, uid, [('default_code', '=', code)])
 
         if product_ids:
             return product_ids[0]
@@ -71,7 +69,7 @@ class ProductProduct(orm.Model):
     def get_is_to_import_product(self, cr, uid, item_id, context = None):
         ''' Return if the product is to import (MM) from ID
         '''
-        product_id = self.search(cr, uid, [('id', '=', item_id),])
+        product_id = self.search(cr, uid, [('id', '=', item_id)])
         if product_id:
             product_browse = self.search(cr, uid, product_id, context=context)
             return not product_browse[0].not_analysis
@@ -85,15 +83,27 @@ class ProductProduct(orm.Model):
             write_date_from=False, write_date_to=False, create_date_from=False,
             create_date_to=False, context=None):
         ''' Import product from external SQL DB
+            self: instance
+            cr: cursor
+            uid: user ID
+            verbose_log_count: verbose read record every X (0 for nothing)
+            write_date_from: write to
+            write_date_to: write to
+            create_date_from: create from 
+            create_date_to: create to
+            context: args passed
         '''
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
 
-        # Get route for manufacture: TODO >> use a check bool??
+        # --------------------------
+        # Get route for manufacture: 
+        # --------------------------
+        #TODO >> use a check bool??
         route_pool = self.pool.get('stock.location.route')
         route_ids = route_pool.search(cr, uid, [
             ('name', '=', 'Manufacture')], context=context)
-        to_manufacture = (1, ) # TODO parametrize
+        to_manufacture = (1, ) # TODO parametrize (list of structured record)
         if route_ids:
             manufacture = [(6, 0, [route_ids[0]])]
         else:
@@ -101,9 +111,12 @@ class ProductProduct(orm.Model):
 
         try:
             cursor = accounting_pool.get_product( 
-                cr, uid, active = False, write_date_from=write_date_from,
-                write_date_to=write_date_to, create_date_from=create_date_from,
-                create_date_to=create_date_to, context=context) 
+                cr, uid, active=False, 
+                write_date_from=write_date_from,
+                write_date_to=write_date_to, 
+                create_date_from=create_date_from,
+                create_date_to=create_date_to, 
+                context=context) 
             if not cursor:
                 _logger.error(
                     "Unable to connect no importation of packing for product!")
@@ -116,11 +129,12 @@ class ProductProduct(orm.Model):
                     if verbose_log_count and i % verbose_log_count == 0:
                         _logger.info('Import %s: record import/update!' % i)                             
 
+                    default_code = record['CKY_ART']
                     data = {
                         # TODO IFL_ART_DBP o DBV for supply_method='produce'
                         'name': record['CDS_ART'] + (
                             record['CDS_AGGIUN_ART'] or ''),
-                        'default_code': record['CKY_ART'],
+                        'default_code': default_code,
                         'sql_import': True,
                         'active': True,
                         'accounting_structured': record['NKY_STRUTT_ART'],
@@ -129,9 +143,11 @@ class ProductProduct(orm.Model):
                             "%02d" % int(
                                 record['NKY_CAT_STAT_ART'] or '0') if record[
                                     'CKY_CAT_STAT_ART'] else '',
-                        ),
-                    }
+                            ),
+                        }
+                    # -------------------------    
                     # Test if is to manufacture
+                    # -------------------------    
                     if manufacture and record[
                             'NKY_STRUTT_ART'] in to_manufacture:
                         data['route_ids'] = manufacture
@@ -142,8 +158,13 @@ class ProductProduct(orm.Model):
                         data['state'] = 'obsolete'
                         
                     product_ids = product_proxy.search(cr, uid, [
-                        ('default_code', '=', record['CKY_ART'])])
+                        ('default_code', '=', default_code)])
                     if product_ids:
+                        if len(product_ids) > 1:
+                            _logger.warning('Multiple article: %s (%s)' % (
+                                default_code,
+                                len(product_ids), 
+                                )
                         product_id = product_ids[0]
                         product_proxy.write(cr, uid, product_id, data, 
                             context=context)
@@ -152,7 +173,8 @@ class ProductProduct(orm.Model):
                             context=context)
                 except:
                     _logger.error('Error import product [%s], jumped: %s' % (
-                        record['CDS_ART'], sys.exc_info(), ))
+                        default_code, 
+                        sys.exc_info(), ))
                         
             _logger.info('All product is updated!')
         except:
