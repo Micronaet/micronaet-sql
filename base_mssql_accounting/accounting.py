@@ -329,7 +329,7 @@ class micronaet_accounting(orm.Model):
                 sys.exc_info(), ))
             return False  # Error return nothing
     
-    def get_product_quantity(self, cr, uid, lang_code, context=None):
+    def get_product_language(self, cr, uid, lang_code, context=None):
         ''' Return list of term in lang_code passed
             Table: ah_des_art_lingua
         '''

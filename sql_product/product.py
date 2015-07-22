@@ -81,7 +81,7 @@ class ProductProduct(orm.Model):
     # -------------------------------------------------------------------------
     def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, 
             write_date_from=False, write_date_to=False, create_date_from=False,
-            create_date_to=False, multi_lang=None, context=None):
+            create_date_to=False, multi_lang=False, context=None):
         ''' Import product from external SQL DB
             self: instance
             cr: cursor
@@ -91,26 +91,30 @@ class ProductProduct(orm.Model):
             write_date_to: write to
             create_date_from: create from 
             create_date_to: create to
-            multi_lang: List of extra languade, ex.: {1: 'en_US'} where key
+            multi_lang: dict of extra language, ex.: {1: 'en_US'} where key
                         is ID in accounting, value is language code
             context: args passed            
-        '''
-        _logger.info('''
-            Start import product, parameters:
-            verbose count: %s - from write %s - to write %s
-            from create % - to create %s - multi lang: %s''' % (
-                verbose_log_count,
-                write_date_from,
-                write_date_to,
-                create_date_from,
-                create_date_to,
-                multi_lang,                
-                )
+        '''        
+        if context is None:
+            context = {}
+        if not multi_lang:
+            multi_lang = {}    
+            
+        _logger.info('Start import product via SQL database:')
+        #'''
+        #    Start import product, parameters:
+        #    verbose count: %s - from write %s - to write %s
+        #    from create % - to create %s - multi lang: %s''' % (
+        #        verbose_log_count,
+        #        write_date_from,
+        #        write_date_to,
+        #        create_date_from,
+        #        create_date_to,
+        #        multi_lang,          
+        #        ))
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
 
-        if multi_lang is None:
-            multi_lang = False
         product_translate = {} # for next translation
             
         # --------------------------
@@ -200,12 +204,14 @@ class ProductProduct(orm.Model):
             # ------------------------
             if multi_lang:
                 for lang_code, lang in multi_lang.iteritems():
+                    _logger.info('Update language terms: %s' % lang)
                     context_lang = {'lang': lang, }
-                    cursor = self.get_product_quantity(
+                    cursor = accounting_pool.get_product_language(
                         cr, uid, lang_code, context=context)
                     if not cursor:
                         _logger.error("Cannot load cursor for %s" % lang)
                         continue
+
                     # Start update terms:
                     i = 0
                     for record in cursor:
@@ -217,7 +223,8 @@ class ProductProduct(orm.Model):
                                 _logger.error(
                                     'Code not found: %s' % default_code)
                                 continue # next
-                            product_pool.write(
+                                
+                            self.write(
                                 cr, uid, 
                                 product_translate[default_code],
                                 {'name': name}, 
