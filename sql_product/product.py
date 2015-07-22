@@ -95,6 +95,17 @@ class ProductProduct(orm.Model):
                         is ID in accounting, value is language code
             context: args passed            
         '''
+        _logger.info('''
+            Start import product, parameters:
+            verbose count: %s - from write %s - to write %s
+            from create % - to create %s - multi lang: %s''' % (
+                verbose_log_count,
+                write_date_from,
+                write_date_to,
+                create_date_from,
+                create_date_to,
+                multi_lang,                
+                )
         product_proxy = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
 
