@@ -155,6 +155,7 @@ class ProductProduct(orm.Model):
                         # TODO IFL_ART_DBP o DBV for supply_method='produce'
                         'name': record['CDS_ART'] + (
                             record['CDS_AGGIUN_ART'] or ''),
+                        # TODO description_sale = name??     
                         'default_code': default_code,
                         'sql_import': True,
                         'active': True,
