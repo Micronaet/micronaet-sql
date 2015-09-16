@@ -159,14 +159,14 @@
           </p>
         </field>
     </record>
-            
+
     <menuitem 
         parent="sale.menu_sale_order" 
         id="quotation_from_accounting_menu" 
         action="action_quotations_accounting"
         name="Quotation from accounting"
         />    
-    
+
     <!-- ************************************************** -->
     </data>
 </openerp>    
