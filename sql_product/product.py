@@ -96,7 +96,7 @@ class ProductProduct(orm.Model):
             context: args passed            
         '''        
         if context is None:
-            context = {}
+            context = {'lang': 'it_IT'}
         if not multi_lang:
             multi_lang = {}    
             
@@ -188,7 +188,8 @@ class ProductProduct(orm.Model):
                                 len(product_ids), 
                                 ))
                         product_id = product_ids[0]
-                        # TODO check if lang is italian in normal cretion
+                        
+                        # TODO check if lang is italian in normal creation
                         product_proxy.write(cr, uid, product_id, data, 
                             context=context)
                     else:
