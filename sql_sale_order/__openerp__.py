@@ -37,7 +37,6 @@
         'sale',
         'order_delivery', # git branch Micronaet/micronaet-mx8.git
         'order_destination', # git branch Micronaet/micronaet-mx8.git        
-        'production_family',
         ],
     'init_xml': [],
     'demo': [],

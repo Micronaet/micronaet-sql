@@ -446,12 +446,6 @@ class sale_order_line_extra(osv.osv):
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('order_id', 'in', ids)], context=context)
          
-    def _get_family_name(self, cr, uid, ids, context=None):
-        ''' Check when family_id will be modified in product
-        '''
-        return self.pool.get('sale.order.line').search(cr, uid, [
-            ('product_id', 'in', ids)], context=context)
-            
     _columns = {
         'accounting_order': fields.related(
             'order_id', 'accounting_order', type='boolean', 
@@ -472,17 +466,6 @@ class sale_order_line_extra(osv.osv):
         'default_code': fields.related('product_id', 'default_code', 
             type='char', 
             string='Code', store=False), 
-
-        # TODO Transform in related and put in a module
-        'family_id': fields.related('product_id', 'family_id', 
-            type='many2one', relation='product.template', string='Family', 
-            store={'product.product': (_get_family_name, ['family_id'], 10)}),
-        #'family_id': fields.many2one(
-        #    'product.template', 'Family', readonly=True,
-        #    #domain=[('is_family', '=', True)],
-        #    help='Parent family product belongs',
-        #    ),
-
             
         # For production
         'mrp_production_id': fields.many2one(
