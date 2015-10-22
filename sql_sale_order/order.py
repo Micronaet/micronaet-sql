@@ -334,12 +334,7 @@ class SaleOrderSql(orm.Model):
                     'date_deadline': date_deadline,
                     'product_uom': uom_id,
                     'name': oc_line['CDS_VARIAZ_ART'],
-                    # TODO related with {}
-                    'family_id': 
-                        product_browse.product_tmpl_id.family_id.id 
-                           if (product_browse.product_tmpl_id and 
-                               product_browse.product_tmpl_id.family_id) \
-                           else False,
+                    #`family_id now is related!
                     'price_unit': (
                         oc_line['NPZ_UNIT'] or 0.0) * conversion,
                     'tax_id': [
@@ -451,6 +446,12 @@ class sale_order_line_extra(osv.osv):
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('order_id', 'in', ids)], context=context)
          
+    def _get_family_name(self, cr, uid, ids, context=None):
+        ''' Check when family_id will be modified in product
+        '''
+        return self.pool.get('sale.order.line').search(cr, uid, [
+            ('product_id', 'in', ids)], context=context)
+            
     _columns = {
         'accounting_order': fields.related(
             'order_id', 'accounting_order', type='boolean', 
@@ -471,6 +472,17 @@ class sale_order_line_extra(osv.osv):
         'default_code': fields.related('product_id', 'default_code', 
             type='char', 
             string='Code', store=False), 
+
+        # TODO Transform in related and put in a module
+        'family_id': fields.related('product_id', 'family_id', 
+            type='many2one', relation='product.template', string='Family', 
+            store={'product.product': (_get_family_name, ['family_id'], 10)}),
+        #'family_id': fields.many2one(
+        #    'product.template', 'Family', readonly=True,
+        #    #domain=[('is_family', '=', True)],
+        #    help='Parent family product belongs',
+        #    ),
+
             
         # For production
         'mrp_production_id': fields.many2one(
@@ -478,12 +490,7 @@ class sale_order_line_extra(osv.osv):
             
         # TODO not used, for sync
         'account_id': fields.integer('Account ID'),
-        # TODO Transform in related and put in a module
-        'family_id': fields.many2one(
-            'product.template', 'Family', readonly=True,
-            #domain=[('is_family', '=', True)],
-            help='Parent family product belongs',
-            ),
+
         }
     _defaults = {
         'accounting_state': lambda *a: 'new',
