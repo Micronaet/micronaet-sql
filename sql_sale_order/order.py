@@ -160,28 +160,35 @@ class SaleOrderSql(orm.Model):
                                         'CKY_CNT_CLFR'],
                                     }, context=context)
                         except:
+                             # Jump this OC due to partner error:
                              _logger.error(
-                                 "Error creating minimal partner: %s [%s]" % (
+                                 'Minimal partner creation, jumped: %s >%s' % (
                                      oc['CKY_CNT_CLFR'],
                                      sys.exc_info()))
-                             continue # TODO jump this OC?
+                             continue
                     else:
                         partner_id = partner_proxy.id
 
                     oc_id = self.create(cr, uid, {
                         'name': name,
-                        'accounting_order': True, # importation flag
+                        'accounting_order': True,
                         'origin': False,
-                        'picking_policy': 'direct',
-                        'order_policy': 'manual',
                         'date_order': oc['DTT_DOC'].strftime("%Y-%m-%d"),
                         'partner_id': partner_id,
                         'user_id': uid,
                         'note': oc['CDS_NOTE'].strip(), # Terms and conditions
-                        #'invoice_quantity': 'order', # order procurement
                         'pricelist_id':
                             partner_proxy.property_product_pricelist.id if
                                 partner_proxy else 1,  # TODO put default!
+                                
+                        # TODO destination to import!!
+                        # destination_partner_id >> quotation_custom_report
+                        # in micronaet-migration
+
+                        # TODO check if are correct:
+                        'picking_policy': 'direct',
+                        'order_policy': 'manual',
+                        #'invoice_quantity': 'order', # order procurement
                         #'partner_invoice_id': partner_id,
                         #'partner_shipping_id': partner_id, # TODO if present?
                         }, context=context)
