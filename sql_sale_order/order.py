@@ -60,38 +60,44 @@ class SaleOrderSql(orm.Model):
         else:
             return False
     
-    # -------------------------------------------------------------------------
-    #                                 Scheduled action
-    # -------------------------------------------------------------------------
-    def schedule_etl_sale_order(self, cr, uid, context=None):
-        """Import OC and create sale.order
-        """        
-        _logger.info('Start import OC header')
+    # =========================================================================
+    #                               SCHEDULED ACTION
+    # =========================================================================
+    def schedule_etl_sale_order(self, cr, uid, update=False, delete=False,
+             context=None):
+        """ Import OC and create sale.order
+            self: instance
+            cr: database cursor
+            uid: user ID
+            update: if False create only new record, True try a sync wiht key
+            delete: if True delete order no more present
+        """
+        _logger.info('Start import OC header mode: "%s"' % (
+            'update' if update else 'new only'))
         query_pool = self.pool.get('micronaet.accounting')
         empty_date = query_pool.get_empty_date()
         log_info = ''
 
-        # ---------------------------------------------------------------------
-        #                                 UTILITY
-        # ---------------------------------------------------------------------
+        # --------
+        # Utility:
+        # --------
         def get_oc_key(record):
             """ Compose and return key for OC
             """
-            return (
-                record['CSG_DOC'].strip(),
-                record['NGB_SR_DOC'],
-                record['NGL_DOC'],
-                )
+            return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
+                record['NGL_DOC'])
 
         # ---------------------------------------------------------------------
         #                               IMPORT HEADER
         # ---------------------------------------------------------------------
         # Operation for manage deletion:
-        order_ids = self.search(cr, uid, [
-            ('accounting_order', '=', True),
-            ('accounting_state', 'not in', ('close', )),
-            ], context=context)
-        updated_ids = []
+        if delete:
+            order_ids = self.search(cr, uid, [
+                ('accounting_order', '=', True),
+                ('accounting_state', 'not in', ('close', )),
+                ], context=context)
+        if update:        
+            updated_ids = []
 
         # Start importation from SQL:
         cr_oc = query_pool.get_oc_header(cr, uid, context=context)
@@ -111,7 +117,7 @@ class SaleOrderSql(orm.Model):
                     ('name', '=', name),
                     ('accounting_order', '=', True)
                     ], context=context)
-                if oc_ids:
+                if update and oc_ids:
                     # --------------------
                     # Update header order:
                     # --------------------
@@ -128,7 +134,8 @@ class SaleOrderSql(orm.Model):
                             cr, uid, oc_id, header, context=context)
 
                     try: # Note: the lines are removed when remove the header
-                        order_ids.remove(oc_id)
+                        if delete:
+                            order_ids.remove(oc_id)
                     except:
                         pass # no error
                 else:
@@ -192,7 +199,7 @@ class SaleOrderSql(orm.Model):
 
         # Mark as closed order not present in accounting:
         # Rule: order before - order update = order to delete
-        if order_ids:
+        if delete and order_ids:
             try:
                 self.write(cr, uid, order_ids, {
                     'accounting_state': 'close'}, context=context)
@@ -204,26 +211,28 @@ class SaleOrderSql(orm.Model):
         # ---------------------------------------------------------------------
         _logger.info("Start import OC lines")
         line_pool = self.pool.get('sale.order.line')
-        order_line_ids = line_pool.search(cr, uid, [
-            ('order_id', 'in', updated_ids)], context=context)
-        # TODO lines for order deleted?    
-
-        # Load all OC line in openerp DB in dict
         DB_line = {}
-        for ol in line_pool.browse(cr, uid, order_line_ids, context=context):
-            key = (ol.order_id.id, ol.product_id.id, ol.date_deadline)
-            if key in DB_line:
-                pass # TODO raise error?
-                # TODO test if present b or not b else error!
-                
-            # TODO test if is present: ol.product_uom_maked_qty  
-            DB_line[key] = [
-                ol.id,               # ID
-                False,               # finded
-                ol.product_uom_qty,  # q. total
-                0.0,                 # counter: product_uom_maked_sync_qty,
-                ol.sync_state,       # syncro state
-                ]
+        if update:
+            order_line_ids = line_pool.search(cr, uid, [
+                ('order_id', 'in', updated_ids)], context=context)
+            # TODO lines for order deleted?    
+
+            # Load all OC line in openerp DB in dict
+            for ol in line_pool.browse(cr, uid, order_line_ids, 
+                    context=context):
+                key = (ol.order_id.id, ol.product_id.id, ol.date_deadline)
+                if key in DB_line:
+                    pass # TODO raise error?
+                    # TODO test if present b or not b else error!
+                    
+                # TODO test if is present: ol.product_uom_maked_qty  
+                DB_line[key] = [
+                    ol.id,               # ID
+                    False,               # finded
+                    ol.product_uom_qty,  # q. total
+                    0.0,                 # counter: product_uom_maked_sync_qty,
+                    ol.sync_state,       # syncro state
+                    ]
 
         # -------------------------
         # Read database order line:
