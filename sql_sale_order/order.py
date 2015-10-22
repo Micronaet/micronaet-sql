@@ -427,14 +427,15 @@ class sale_order_line_extra(osv.osv):
         # For production
         'mrp_production_id': fields.many2one(
             'mrp.production', 'production order', ondelete='set null'),
-
+            
+        # TODO not used, for sync
+        'account_id': fields.integer('Account ID'),
         # TODO Transform in related and put in a module
         'family_id': fields.many2one(
             'product.template', 'Family', readonly=True,
             #domain=[('is_family', '=', True)],
             help='Parent family product belongs',
             ),
-        'account_id': fields.integer('Account ID'), # TODO not used, for sync
         }
     _defaults = {
         'accounting_state': lambda *a: 'new',
