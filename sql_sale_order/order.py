@@ -239,7 +239,7 @@ class SaleOrderSql(orm.Model):
         # -------------------------
         cr_oc_line = query_pool.get_oc_line(cr, uid, context=context)
         if not cr_oc_line:
-            _logger.error("Cannot connect to MSSQL OC_RIGHE")
+            _logger.error('Cannot connect to MSSQL OC_RIGHE')
             return
         
         i = 0
@@ -247,12 +247,12 @@ class SaleOrderSql(orm.Model):
             try:
                 i += 1
                 if i % 100 == 0:
-                    _logger.info("Sync %s lines" % i)
+                    _logger.info('Sync %s lines' % i)
                     
                 oc_key = get_oc_key(oc_line)
                 if oc_key not in oc_header:
                     _logger.error(
-                        "Header order not found: OC-%s" % (oc_key[2]))
+                        'Header order not found: OC-%s' % (oc_key[2]))
                     continue
 
                 # -----------------------------
@@ -262,7 +262,7 @@ class SaleOrderSql(orm.Model):
                     self, cr, uid, oc_line['CKY_ART'].strip(), context=context)
                 if not product_browse:
                     _logger.info(
-                        _("No product found (OC line jumped): %s") % (
+                        _('No product found (OC line jumped): %s') % (
                             oc_line['CKY_ART'], ))
                     continue
 
@@ -291,16 +291,16 @@ class SaleOrderSql(orm.Model):
                             'date_deadline': date_deadline}, context=context)
 
                 # common part of record (update/create):
-                # create / update data
-                data = {
+                data = { # update
                     'product_uom_qty': quantity,
                     'order_id': order_id,
                     }
-                data_create = {
+                data_create = { # create
                     'product_id': product_browse.id,
                     'date_deadline': date_deadline,
                     'product_uom': uom_id,
                     'name': oc_line['CDS_VARIAZ_ART'],
+                    # TODO related with {}
                     'family_id': 
                         product_browse.product_tmpl_id.family_id.id 
                            if (product_browse.product_tmpl_id and 
@@ -324,7 +324,7 @@ class SaleOrderSql(orm.Model):
                     data_create['date_deadline'], )
 
                 # Loop on all odoo order line for manage sync mode
-                if key in DB_line:
+                if update and key in DB_line:
                     # [ID, finded, q., maked, state]                    
                     element = DB_line[key]
                     oc_line_id = element[0]
@@ -366,21 +366,18 @@ class SaleOrderSql(orm.Model):
                         
                     oc_line_id = line_pool.create(
                         cr, uid, data, context=context)
-                    DB_line[key] = [
-                        oc_line_id,
-                        True, 
-                        data.get('product_uom_qty', 0.0),
-                        account_maked, #product_uom_maked_sync_qty
-                        '', #data.get('sync_state', False), # TODO change?
-                        ]
+                        
+                    # TODO needed?!?    
+                    DB_line[key] = [oc_line_id, True, 
+                        data.get('product_uom_qty', 0.0), account_maked, '']
+                    # product_uom_maked_sync_qty
+                    # data.get('sync_state', False), # TODO change?
             except:
-                _logger.error("Problem with oc line record: %s\n%s" % (
-                    oc_line,
-                    sys.exc_info()
-                ))
+                _logger.error('Problem with oc line record: %s\n%s' % (
+                    oc_line, sys.exc_info()))
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
-        _logger.info("End importation OC header and line!")
+        _logger.info('End importation OC header and line!')
         return
 
     _columns = {
@@ -401,8 +398,7 @@ class SaleOrderSql(orm.Model):
 
 class sale_order_line_extra(osv.osv):
     """ Create extra fields in sale.order.line obj
-    """
-    
+    """    
     _inherit = "sale.order.line"
 
     _columns = {
