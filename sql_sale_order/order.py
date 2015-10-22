@@ -42,16 +42,15 @@ from utility import *
 _logger = logging.getLogger(__name__)
 
 class SaleOrderSql(orm.Model):
-    """Update basic obiect for import accounting elements
+    """Update basic object for import accounting elements
        NOTE: in this procedure there's some fields that are created
              from another module, TODO correct for keep module "modular"
     """
-
     _inherit = 'sale.order'
 
-    # -------------------------------------------------------------------------
-    #                              Utility function
-    # -------------------------------------------------------------------------
+    # -----------------
+    # Utility function:
+    # -----------------
     def get_uom(self, cr, uid, name, context=None):
         uom_id = self.pool.get('product.uom').search(cr, uid, [
             ('name', '=', name), ])
@@ -74,6 +73,7 @@ class SaleOrderSql(orm.Model):
         """
         _logger.info('Start import OC header mode: "%s"' % (
             'update' if update else 'new only'))
+            
         query_pool = self.pool.get('micronaet.accounting')
         empty_date = query_pool.get_empty_date()
         log_info = ''
@@ -94,19 +94,20 @@ class SaleOrderSql(orm.Model):
         if delete:
             order_ids = self.search(cr, uid, [
                 ('accounting_order', '=', True),
-                ('accounting_state', 'not in', ('close', )),
+                ('accounting_state', 'not in', ('close')), # TODO used??
                 ], context=context)
         if update:        
             updated_ids = []
 
-        # Start importation from SQL:
+        # Start importation from SQL (NOTE: no comment!!):
         cr_oc = query_pool.get_oc_header(cr, uid, context=context)
         if not cr_oc:
-            _logger.error("Cannot connect to MSSQL OC_TESTATE")
+            _logger.error('Cannot connect to MSSQL OC_TESTATE')
             return
 
         # Converter 
         oc_header = {} # (ref, type, number): ODOO ID
+        partner_created = {}
         for oc in cr_oc:
             try:
                 name = "MX-%s/%s" % (
@@ -138,29 +139,38 @@ class SaleOrderSql(orm.Model):
                             order_ids.remove(oc_id)
                     except:
                         pass # no error
-                else:
+                else: # always do
                     # --------------------
                     # Create header order:
                     # --------------------
                     partner_proxy = browse_partner_ref(
                         self, cr, uid, oc['CKY_CNT_CLFR'], context=context)
                     if not partner_proxy or not partner_proxy.id:
-                        _logger.error(
-                            "No partner found (created minimal): %s" % (
-                                oc['CKY_CNT_CLFR']))
                         try:
-                            partner_id = self.pool.get('res.partner').create(
-                                cr, uid, {
-                                    'name': _("Customer %s") % (
-                                        oc['CKY_CNT_CLFR']),
-                                    'active': True,
-                                    #'property_account_position': 1, # TODO?
-                                    'is_company': True,
-                                    #'employee': False,
-                                    'parent_id': False,
-                                    'sql_customer_code': oc['CKY_CNT_CLFR'],
-                                    }, context=context)
-                            # TODO reload partner_proxy function?    
+                            if oc['CKY_CNT_CLFR'] in partner_created:
+                                # Check in database current lite creation:
+                                partner_id = partner_created[
+                                    oc['CKY_CNT_CLFR']]
+                                _logger.error(
+                                    'Use partner created this session: %s' % (
+                                        oc['CKY_CNT_CLFR']))
+                            else:        
+                                _logger.error(
+                                    "No partner found, created minimal: %s" % (
+                                        oc['CKY_CNT_CLFR']))
+                                partner_id = self.pool.get(
+                                    'res.partner').create(cr, uid, {
+                                        'name': _("Customer %s") % (
+                                            oc['CKY_CNT_CLFR']),
+                                        'active': True,
+                                        'is_company': True,
+                                        'parent_id': False,
+                                        'sql_customer_code': oc[
+                                            'CKY_CNT_CLFR'],
+                                        }, context=context)
+                                # Save in temp database:        
+                                partner_created[ 
+                                    oc['CKY_CNT_CLFR']] = partner_id                                        
                         except:
                              _logger.error(
                                  "Error creating minimal partner: %s [%s]" % (
