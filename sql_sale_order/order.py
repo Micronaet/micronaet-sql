@@ -435,7 +435,16 @@ class sale_order_line_extra(osv.osv):
     """    
     _inherit = "sale.order.line"
 
-    # related optimize modification function:
+    # -------------------------------------
+    # Related  field optimization function:
+    # -------------------------------------
+    def _get_accounting_state(self, cr, uid, ids, context=None):
+        ''' When change accounting state information in order propagate
+            also in order line
+        '''
+        return self.pool.get('sale.order.line').search(cr, uid, [
+            ('order_id', 'in', ids)], context=context)
+
     def _get_new_name(self, cr, uid, ids, context=None):
         ''' Check when partner are modify the line to update
         '''
@@ -443,6 +452,11 @@ class sale_order_line_extra(osv.osv):
             ('order_id', 'in', ids)], context=context)
          
     _columns = {
+        'accounting_order': fields.related(
+            'order_id', 'accounting_order', type='boolean', 
+            string='Accounting order', store={
+                'sale.order': (
+                    _get_accounting_state, ['accounting_order'], 10)}), 
         'accounting_state': fields.selection([
             ('new', 'New'),
             ('production', 'Production'), 
