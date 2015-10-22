@@ -376,7 +376,7 @@ class SaleOrderSql(orm.Model):
         return
 
     _columns = {
-        'date_deadline': fields.date('Deadline'),
+        #'date_deadline': fields.date('Deadline'),
         'accounting_order': fields.boolean(
             'Accounting order',
             help='Automatic generation from importation'),
@@ -407,7 +407,7 @@ class sale_order_line_extra(osv.osv):
             ('producted', 'Producted'), 
             ('closed', 'Closed/Deleted'), 
         ],'Accounting state', select=True, readonly=True),
-        'date_deadline': fields.date('Deadline'),
+        #'date_deadline': fields.date('Deadline'),
         
         'partner_id': fields.related('order_id','partner_id', type='many2one', 
             relation='res.partner', string='Partner', store=True), # TODO {}
