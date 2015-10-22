@@ -142,6 +142,7 @@ class SaleOrderSql(orm.Model):
                     # --------------------
                     # Create header order:
                     # --------------------
+                    # Partner controls:
                     partner_proxy = browse_partner_ref(
                         self, cr, uid, oc['CKY_CNT_CLFR'], context=context)
                     if not partner_proxy or not partner_proxy.id:
@@ -168,6 +169,36 @@ class SaleOrderSql(orm.Model):
                              continue
                     else:
                         partner_id = partner_proxy.id
+                        
+                    # Destination controls:
+                    destination_partner_id = False # TODO remove after finish!
+                    # TODO find field name:                    
+                    #partner_proxy = browse_partner_ref(                    
+                    #    self, cr, uid, oc['CKY_CNT_CLFR'], context=context)
+                    #if not partner_proxy or not partner_proxy.id:
+                    #    try:
+                    #        _logger.error(
+                    #            "No destination found, created minimal: %s" % (
+                    #                oc['CKY_CNT_CLFR']))
+                    #        destination_partner_id = self.pool.get(
+                    #            'res.partner').create(cr, uid, {
+                    #                'name': _("Customer %s") % (
+                    #                    oc['CKY_CNT_CLFR']),
+                    #                'active': True,
+                    #                'is_company': True,
+                    #                'parent_id': False,
+                    #                'sql_customer_code': oc[
+                    #                    'CKY_CNT_CLFR'],
+                    #                }, context=context)
+                    #    except:
+                    #         # Not jumped created without header
+                    #         _logger.error(
+                    #             'Minimal destin. creation: %s >%s' % (
+                    #                 oc['CKY_CNT_CLFR'],
+                    #                 sys.exc_info()))
+                    #         #continue
+                    #else:
+                    #    destination_partner_id = partner_proxy.id
 
                     oc_id = self.create(cr, uid, {
                         'name': name,
@@ -175,16 +206,14 @@ class SaleOrderSql(orm.Model):
                         'origin': False,
                         'date_order': oc['DTT_DOC'].strftime("%Y-%m-%d"),
                         'partner_id': partner_id,
+                        'destination_partner_id': destination_partner_id,
+                        
                         'user_id': uid,
                         'note': oc['CDS_NOTE'].strip(), # Terms and conditions
                         'pricelist_id':
                             partner_proxy.property_product_pricelist.id if
                                 partner_proxy else 1,  # TODO put default!
                                 
-                        # TODO destination to import!!
-                        # destination_partner_id >> quotation_custom_report
-                        # in micronaet-migration
-
                         # TODO check if are correct:
                         'picking_policy': 'direct',
                         'order_policy': 'manual',
