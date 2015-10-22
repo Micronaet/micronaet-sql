@@ -47,7 +47,7 @@ class SaleOrderSql(orm.Model):
              from another module, TODO correct for keep module "modular"
     """
 
-    _inherit = "sale.order"
+    _inherit = 'sale.order'
 
     # -------------------------------------------------------------------------
     #                              Utility function
@@ -66,11 +66,10 @@ class SaleOrderSql(orm.Model):
     def schedule_etl_sale_order(self, cr, uid, context=None):
         """Import OC and create sale.order
         """        
-
-        _logger.info("Start import OC header")
+        _logger.info('Start import OC header')
         query_pool = self.pool.get('micronaet.accounting')
         empty_date = query_pool.get_empty_date()
-        log_info = ""
+        log_info = ''
 
         # ---------------------------------------------------------------------
         #                                 UTILITY
@@ -376,7 +375,6 @@ class SaleOrderSql(orm.Model):
         return
 
     _columns = {
-        #'date_deadline': fields.date('Deadline'),
         'accounting_order': fields.boolean(
             'Accounting order',
             help='Automatic generation from importation'),
@@ -388,8 +386,6 @@ class SaleOrderSql(orm.Model):
         }
 
     _defaults = {
-        #'date_previous_deadline': lambda *x: False,
-        #'date_delivery': lambda *x: False,
         'accounting_order': lambda *x: False,
         'accounting_state': lambda *x: 'new',
         }
@@ -407,8 +403,6 @@ class sale_order_line_extra(osv.osv):
             ('producted', 'Producted'), 
             ('closed', 'Closed/Deleted'), 
         ],'Accounting state', select=True, readonly=True),
-        #'date_deadline': fields.date('Deadline'),
-        
         'partner_id': fields.related('order_id','partner_id', type='many2one', 
             relation='res.partner', string='Partner', store=True), # TODO {}
         'default_code': fields.related('product_id', 'default_code', 
@@ -427,11 +421,8 @@ class sale_order_line_extra(osv.osv):
             readonly=True),            
         
         'account_id': fields.integer('Account ID'), # TODO not used, for sync
-        #'partner_id': fields.related(
-        #    'order_id','partner_id', type='many2one', relation='res.partner',
-        #    string='Partner', store=True),
-    }
+        }
     _defaults = {
         'accounting_state': lambda *a: 'new',
-    }
+        }
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
