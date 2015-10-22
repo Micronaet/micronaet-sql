@@ -107,7 +107,6 @@ class SaleOrderSql(orm.Model):
 
         # Converter 
         oc_header = {} # (ref, type, number): ODOO ID
-        partner_created = {}
         for oc in cr_oc:
             try:
                 name = "MX-%s/%s" % (
@@ -147,30 +146,19 @@ class SaleOrderSql(orm.Model):
                         self, cr, uid, oc['CKY_CNT_CLFR'], context=context)
                     if not partner_proxy or not partner_proxy.id:
                         try:
-                            if oc['CKY_CNT_CLFR'] in partner_created:
-                                # Check in database current lite creation:
-                                partner_id = partner_created[
-                                    oc['CKY_CNT_CLFR']]
-                                _logger.error(
-                                    'Use partner created this session: %s' % (
-                                        oc['CKY_CNT_CLFR']))
-                            else:        
-                                _logger.error(
-                                    "No partner found, created minimal: %s" % (
-                                        oc['CKY_CNT_CLFR']))
-                                partner_id = self.pool.get(
-                                    'res.partner').create(cr, uid, {
-                                        'name': _("Customer %s") % (
-                                            oc['CKY_CNT_CLFR']),
-                                        'active': True,
-                                        'is_company': True,
-                                        'parent_id': False,
-                                        'sql_customer_code': oc[
-                                            'CKY_CNT_CLFR'],
-                                        }, context=context)
-                                # Save in temp database:        
-                                partner_created[ 
-                                    oc['CKY_CNT_CLFR']] = partner_id                                        
+                            _logger.error(
+                                "No partner found, created minimal: %s" % (
+                                    oc['CKY_CNT_CLFR']))
+                            partner_id = self.pool.get(
+                                'res.partner').create(cr, uid, {
+                                    'name': _("Customer %s") % (
+                                        oc['CKY_CNT_CLFR']),
+                                    'active': True,
+                                    'is_company': True,
+                                    'parent_id': False,
+                                    'sql_customer_code': oc[
+                                        'CKY_CNT_CLFR'],
+                                    }, context=context)
                         except:
                              _logger.error(
                                  "Error creating minimal partner: %s [%s]" % (
