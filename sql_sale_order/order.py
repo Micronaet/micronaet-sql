@@ -401,6 +401,13 @@ class sale_order_line_extra(osv.osv):
     """    
     _inherit = "sale.order.line"
 
+    # related optimize modification function:
+    def _get_new_name(self, cr, uid, ids, context=None):
+        ''' Check when partner are modify the line to update
+        '''
+        return self.pool.get('sale.order.line').search(cr, uid, [
+            ('order_id', 'in', ids)], context=context)
+         
     _columns = {
         'accounting_state': fields.selection([
             ('new', 'New'),
@@ -408,23 +415,25 @@ class sale_order_line_extra(osv.osv):
             ('producted', 'Producted'), 
             ('closed', 'Closed/Deleted'), 
         ],'Accounting state', select=True, readonly=True),
-        'partner_id': fields.related('order_id','partner_id', type='many2one', 
-            relation='res.partner', string='Partner', store=True), # TODO {}
+
+        # Optimize modification:
+        'partner_id': fields.related('order_id', 'partner_id', type='many2one', 
+            relation='res.partner', string='Partner', 
+            store={'sale.order': (_get_new_name, ['partner_id'], 10)}), 
         'default_code': fields.related('product_id', 'default_code', 
             type='char', 
             string='Code', store=False), 
             
         # For production
         'mrp_production_id': fields.many2one(
-            'mrp.production', 'Production order', required=False,
-            ondelete='set null',),
+            'mrp.production', 'production order', ondelete='set null'),
 
-        # TODO Bad, require yet family_id installed!!!
-        'family_id': fields.many2one('product.template', 'Family', 
-            help='Parent family product belongs',
+        # TODO Transform in related and put in a module
+        'family_id': fields.many2one(
+            'product.template', 'Family', readonly=True,
             #domain=[('is_family', '=', True)],
-            readonly=True),            
-        
+            help='Parent family product belongs',
+            ),
         'account_id': fields.integer('Account ID'), # TODO not used, for sync
         }
     _defaults = {
