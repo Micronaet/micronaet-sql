@@ -540,7 +540,7 @@ class micronaet_accounting(orm.Model):
                 SELECT 
                     CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_RIGA, DTT_SCAD, CKY_ART, 
                     NGB_TIPO_QTA, NQT_RIGA_O_PLOR, NPR_SORT_RIGA, NCF_CONV, 
-                    NPZ_UNIT, CDS_VARIAZ_ART, IST_RIGA_SOSP, NGB_COLLI
+                    NPZ_UNIT, CDS_VARIAZ_ART, IST_RIGA_SOSP, NGB_COLLI, CSG_SCN
                 FROM %s;""" % (table, ))
             # no: NPZ_UNIT, NGL_RIF_RIGA, NPR_SORT_RIGA, NKY_CAUM, NKY_DEP
             return cursor # with the query setted up                  

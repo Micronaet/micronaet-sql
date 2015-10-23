@@ -98,7 +98,6 @@
     </record>    
 
     <!-- ** Split view and keep account in separate menu ** -->
-    
     <record id="view_order_accounting_form" model="ir.ui.view">
         <field name="name">sale.order.accountingform</field>
         <field name="model">sale.order</field>
@@ -161,14 +160,12 @@
           </p>
         </field>
     </record>
-
-    <menuitem 
+    <menuitem
         parent="sale.menu_sale_order" 
         id="quotation_from_accounting_menu" 
         action="action_quotations_accounting"
         name="Quotation from accounting"
-        />    
-
+        />
     <!-- ************************************************** -->
     </data>
 </openerp>    

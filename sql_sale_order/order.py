@@ -329,6 +329,20 @@ class SaleOrderSql(orm.Model):
                     'product_uom_qty': quantity,
                     'order_id': order_id,
                     }
+                    
+                discount = False
+                multi_discount_rate = False    
+                if oc_line['CSG_SCN']:
+                    res = line_pool.on_change_multi_discount(
+                        cr, uid, False, oc_line['CSG_SCN'], context=context)
+                    try:
+                        discount = res.value.get('discount', False)
+                        multi_discount_rate = res.value.get(
+                            'multi_discount_rate', False)
+                    except:
+                        _logger.error('Error calculating discount value')
+                        pass
+                
                 data_create = { # create
                     'product_id': product_browse.id,
                     'date_deadline': date_deadline,
@@ -341,7 +355,9 @@ class SaleOrderSql(orm.Model):
                         (6, 0, [product_browse.taxes_id[0].id, ])
                         ] if product_browse and product_browse.taxes_id
                             else False, # CSG_IVA
-                    'sequence': sequence,        
+                    'sequence': sequence,
+                    'discount': discount,
+                    'multi_discount_rate': multi_discount_rate,
                     }
                         
                 # --------------------
