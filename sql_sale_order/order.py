@@ -107,6 +107,7 @@ class SaleOrderSql(orm.Model):
 
         # Converter 
         oc_header = {} # (ref, type, number): ODOO ID
+        order_partner = {}
         for oc in cr_oc:
             try:
                 name = "MX-%s/%s" % (
@@ -118,7 +119,10 @@ class SaleOrderSql(orm.Model):
                     ('accounting_order', '=', True)
                     ], context=context)
                     
-                oc_id = False    
+                # Initialize var that could not be populated:    
+                oc_id = False
+                partner_id = False
+                destination_partner_id = False
                 if update and oc_ids:
                     # --------------------
                     # Update header order:
@@ -173,7 +177,6 @@ class SaleOrderSql(orm.Model):
                         partner_id = partner_proxy.id
                         
                     # Destination controls:
-                    destination_partner_id = False # TODO remove after finish!
                     # TODO find field name:                    
                     #partner_proxy = browse_partner_ref(                    
                     #    self, cr, uid, oc['CKY_CNT_CLFR'], context=context)
@@ -227,6 +230,7 @@ class SaleOrderSql(orm.Model):
                 # Save reference for lines (deadline purpose):
                 
                 if oc_id: # update or created
+                    order_partner[oc_id] = partner_id
                     new_ids.append(oc_id)
                     oc_key = get_oc_key(oc)
                     if (oc_key) not in oc_header:
@@ -383,8 +387,9 @@ class SaleOrderSql(orm.Model):
                     # Related fields ------------------------------------------
                     'accounting_order': True,
                     'family_id': family_id,
+                    'partner_id': order_partner.get(order_id, False),
                     }
-                        
+
                 # --------------------
                 # Syncronization part:
                 # --------------------
