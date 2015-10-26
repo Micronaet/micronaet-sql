@@ -71,7 +71,6 @@ class SaleOrderSql(orm.Model):
             update: if False create only new record, True try a sync wiht key
             delete: if True delete order no more present
         """
-        import pdb; pdb.set_trace()
         _logger.info('Start import OC header mode: "%s"' % (
             'update' if update else 'new only'))
             
@@ -118,6 +117,8 @@ class SaleOrderSql(orm.Model):
                     ('name', '=', name),
                     ('accounting_order', '=', True)
                     ], context=context)
+                    
+                oc_id = False    
                 if update and oc_ids:
                     # --------------------
                     # Update header order:
