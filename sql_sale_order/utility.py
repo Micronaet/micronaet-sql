@@ -138,9 +138,9 @@ def browse_product_ref(self, cr, uid, ref, uom='kg', context=None):
     ''' Return browse obj for product ref
         Create a minimal product with code ref for not jump oc line creation
         (after normal sync of product will update all the fields not present
-        cr
-        uid
-        ref
+        cr: database cursor
+        uid: user ID
+        ref: product code
         uom: default uom during creation lite process
         context:
     '''
