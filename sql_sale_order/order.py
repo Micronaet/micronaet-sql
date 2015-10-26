@@ -299,7 +299,8 @@ class SaleOrderSql(orm.Model):
                 # Get product browse from code:
                 # -----------------------------
                 product_browse = browse_product_ref(
-                    self, cr, uid, oc_line['CKY_ART'].strip(), context=context)
+                    self, cr, uid, oc_line['CKY_ART'].strip(), 'Unit(s)', 
+                    context=context)
                 if not product_browse:
                     _logger.info(
                         _('No product found (OC line jumped): %s') % (

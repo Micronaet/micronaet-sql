@@ -134,10 +134,15 @@ def browse_product_id(self, cr, uid, item_id, context=None):
         cr, uid, [item_id], context=context)
     return browse_ids[0] if browse_ids else False
  
-def browse_product_ref(self, cr, uid, ref, context=None):
+def browse_product_ref(self, cr, uid, ref, uom='kg', context=None):
     ''' Return browse obj for product ref
         Create a minimal product with code ref for not jump oc line creation
         (after normal sync of product will update all the fields not present
+        cr
+        uid
+        ref
+        uom: default uom during creation lite process
+        context:
     '''
     
     item_id = self.pool.get('product.product').search(cr, uid, [
@@ -145,7 +150,7 @@ def browse_product_ref(self, cr, uid, ref, context=None):
     if not item_id:
        try:
            uom_id = self.pool.get('product.uom').search(cr, uid, [
-               ('name', '=', 'kg')],context=context)
+               ('name', '=', uom)],context=context)
            uom_id = uom_id[0] if uom_id else False
            item_id=self.pool.get('product.product').create(cr,uid,{
                'name': ref,
