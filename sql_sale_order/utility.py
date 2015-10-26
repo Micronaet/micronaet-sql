@@ -152,7 +152,7 @@ def browse_product_ref(self, cr, uid, ref, uom='kg', context=None):
            uom_id = self.pool.get('product.uom').search(cr, uid, [
                ('name', '=', uom)],context=context)
            uom_id = uom_id[0] if uom_id else False
-           item_id=self.pool.get('product.product').create(cr,uid,{
+           item_id = self.pool.get('product.product').create(cr,uid,{
                'name': ref,
                'name_template': ref,
                #'mexal_id': ref,
@@ -161,13 +161,15 @@ def browse_product_ref(self, cr, uid, ref, uom='kg', context=None):
                'type': 'consu',
                'standard_price': 0.0,
                'list_price': 0.0,
-               'description_sale': ref, # preserve original name (not code + name)
+               # preserve original name (not code + name)
+               'description_sale': ref, 
                'description': ref,
                'uos_id': uom_id,
                'uom_id': uom_id,
                'uom_po_id': uom_id,
                #'supply_method': 'produce',
            }, context=context)
+           _logger.warning('Fast creation of product: %s' % ref)
        except:
            return False # error creating product
     else:
