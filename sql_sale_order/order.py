@@ -71,6 +71,7 @@ class SaleOrderSql(orm.Model):
             update: if False create only new record, True try a sync wiht key
             delete: if True delete order no more present
         """
+        import pdb; pdb.set_trace()
         _logger.info('Start import OC header mode: "%s"' % (
             'update' if update else 'new only'))
             
@@ -138,7 +139,7 @@ class SaleOrderSql(orm.Model):
                             order_ids.remove(oc_id)
                     except:
                         pass # no error
-                else: # always do
+                elif not oc_ids: # always do
                     # --------------------
                     # Create header order:
                     # --------------------
@@ -223,10 +224,12 @@ class SaleOrderSql(orm.Model):
                         }, context=context)
 
                 # Save reference for lines (deadline purpose):
-                oc_key = get_oc_key(oc)
-                if (oc_key) not in oc_header:
-                    # (ID, Deadline) # No deadline in header take first line
-                    oc_header[oc_key] = [oc_id, False]
+                
+                if oc_id: # update or created
+                    oc_key = get_oc_key(oc)
+                    if (oc_key) not in oc_header:
+                        # (ID, Deadline) # No deadline in header take first line
+                        oc_header[oc_key] = [oc_id, False]
             except:
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
@@ -243,7 +246,6 @@ class SaleOrderSql(orm.Model):
         # ---------------------------------------------------------------------
         #                               IMPORT LINE
         # ---------------------------------------------------------------------
-        import pdb; pdb.set_trace()
         _logger.info("Start import OC lines")
         line_pool = self.pool.get('sale.order.line')
         DB_line = {}
@@ -286,8 +288,9 @@ class SaleOrderSql(orm.Model):
                     
                 oc_key = get_oc_key(oc_line)
                 if oc_key not in oc_header:
-                    _logger.error(
-                        'Header order not found: OC-%s' % (oc_key[2]))
+                    _logger.warning(
+                        'Header order not found (old order?): OC-%s' % (
+                            oc_key[2]))
                     continue
 
                 # -----------------------------
@@ -329,17 +332,20 @@ class SaleOrderSql(orm.Model):
                 # Discount block:    
                 # ---------------                    
                 discount = False
-                multi_discount_rate = False    
+                multi_discount_rates = False    
                 account_scale = oc_line['CSG_SCN'].strip()
                 if account_scale:
-                    res = line_pool.on_change_multi_discount(
-                        cr, uid, False, account_scale, context=context)
                     try:
-                        discount = res.value.get('discount', False)
-                        multi_discount_rate = res.value.get(
-                            'multi_discount_rate', False)
+                        res = line_pool.on_change_multi_discount(
+                            cr, uid, False, account_scale, 
+                            context=context)['value']
+                        discount = res.get('discount', False)
+                        multi_discount_rates = res.get(
+                            'multi_discount_rates', False)
                     except:
-                        _logger.error('Error calculating discount value')
+                        _logger.error(
+                            'Error calculating discount value: %s' % (
+                                account_scale))
                         pass
 
                 # Common part of record (update/create):
@@ -363,7 +369,7 @@ class SaleOrderSql(orm.Model):
                             else False, # CSG_IVA
                     'sequence': sequence,
                     'discount': discount,
-                    'multi_discount_rate': multi_discount_rate,
+                    'multi_discount_rates': multi_discount_rates,
                     }
                         
                 # --------------------
@@ -416,15 +422,17 @@ class SaleOrderSql(orm.Model):
                     #    data_update[
                     #        'product_uom_maked_sync_qty'] = account_maked
                     #else:
-                    account_maked = 0.0
+                    #    account_maked = 0.0
                         
                     oc_line_id = line_pool.create(
                         cr, uid, data_update, context=context)
                         
                     # TODO needed?!?    
-                    DB_line[key] = [oc_line_id, True,
-                        data_update.get(
-                            'product_uom_qty', 0.0), account_maked, '']
+                    
+                    #DB_line[key] = [oc_line_id, True,
+                    #    data_update.get(
+                    #        'product_uom_qty', 0.0), account_maked, '']
+                    
                     # product_uom_maked_sync_qty
                     # data_update.get('sync_state', False), # TODO change?
             except:
