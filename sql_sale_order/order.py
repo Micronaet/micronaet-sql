@@ -98,7 +98,7 @@ class SaleOrderSql(orm.Model):
                 ], context=context)
         if update:        
             updated_ids = []
-
+        new_ids = [] # for force related
         # Start importation from SQL (NOTE: no comment!!):
         cr_oc = query_pool.get_oc_header(cr, uid, context=context)
         if not cr_oc:
@@ -227,6 +227,7 @@ class SaleOrderSql(orm.Model):
                 # Save reference for lines (deadline purpose):
                 
                 if oc_id: # update or created
+                    new_ids.append(oc_id)
                     oc_key = get_oc_key(oc)
                     if (oc_key) not in oc_header:
                         # (ID, Deadline) # No deadline in header take first line
@@ -440,7 +441,12 @@ class SaleOrderSql(orm.Model):
                 _logger.error('Problem with oc line record: %s\n%s' % (
                     oc_line, sys.exc_info()))
 
-        # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!
+        # Force related update:
+        self.write(cr, uid, new_ids, {
+            'accounting_order': True,
+            }, context=context)
+            
+        # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!        
         _logger.info('End importation OC header and line!')
         return
 
@@ -511,6 +517,6 @@ class sale_order_line_extra(osv.osv):
 
         }
     _defaults = {
-        'accounting_state': lambda *a: 'new',
+        'accounting_state': lambda *a: 'new',        
         }
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
