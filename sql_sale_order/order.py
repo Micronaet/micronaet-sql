@@ -325,12 +325,9 @@ class SaleOrderSql(orm.Model):
                         mod = self.write(cr, uid, order_id, {
                             'date_deadline': date_deadline}, context=context)
 
-                # common part of record (update/create):
-                data = { # update
-                    'product_uom_qty': quantity,
-                    'order_id': order_id,
-                    }
-                    
+                # ---------------                    
+                # Discount block:    
+                # ---------------                    
                 discount = False
                 multi_discount_rate = False    
                 account_scale = oc_line['CSG_SCN'].strip()
@@ -344,7 +341,14 @@ class SaleOrderSql(orm.Model):
                     except:
                         _logger.error('Error calculating discount value')
                         pass
-                
+
+                # Common part of record (update/create):
+                data_update = { # update
+                    'product_uom_qty': quantity,
+                    'order_id': order_id,
+                    }
+
+                # Create only record:                
                 data_create = { # create
                     'product_id': product_browse.id,
                     'date_deadline': date_deadline,
@@ -380,45 +384,49 @@ class SaleOrderSql(orm.Model):
                     # 4 case (all not B, all B, not B-B, B-not B                            
                     # TODO test instead of writing for speed up
                     if oc_line['IST_RIGA_SOSP'] == 'B':
-                        element[3] += data['product_uom_qty'] # counter
-                        data['product_uom_maked_sync_qty'] = element[3]
+                        element[3] += data_update['product_uom_qty'] # counter
+                        data_update['product_uom_maked_sync_qty'] = element[3]
                         if element[1]: # TODO not B first or error??
-                            del data['product_uom_qty'] # leave prev.
+                            del data_update['product_uom_qty'] # leave prev.
                         else: # Create B line
                             element[1] = True # set line as assigned!
                         line_pool.write(
-                            cr, uid, oc_line_id, data, 
+                            cr, uid, oc_line_id, data_update, 
                             context=context)
                             # TODO sync_state = ?
                     else: # Line not produced:              
-                        data['sequence'] = sequence # only with no B line
+                        data_update['sequence'] = sequence # only without B line
       
                         if not element[1]: # error or B created first
                             #if abs(element[4] - quantity) < 1.0: 
-                            #data["accounting_state"] = "new" # TODO serve?
+                            #data_update["accounting_state"] = "new" #TODO need
                             element[1] = True # set line as assigned!
 
                             # Modify record:
                         line_pool.write(
-                            cr, uid, oc_line_id, data, 
+                            cr, uid, oc_line_id, data_update, 
                             context=context)
                 else: # Create record, not found: (product_id-date_deadline)
                     # Update record with value for creation:                    
-                    data.update(data_create)
-                    if oc_line['IST_RIGA_SOSP'] == 'B':
-                        account_maked = data.get('product_uom_qty', 0.0)
-                        data['product_uom_maked_sync_qty'] = account_maked
-                    else:
-                        account_maked = 0.0
+                    data_update.update(data_create)
+                    # TODO manage better!!!!!!
+                    #if oc_line['IST_RIGA_SOSP'] == 'B':
+                    #    account_maked = data_update.get(
+                    #        'product_uom_qty', 0.0)
+                    #    data_update[
+                    #        'product_uom_maked_sync_qty'] = account_maked
+                    #else:
+                    account_maked = 0.0
                         
                     oc_line_id = line_pool.create(
-                        cr, uid, data, context=context)
+                        cr, uid, data_update, context=context)
                         
                     # TODO needed?!?    
-                    DB_line[key] = [oc_line_id, True, 
-                        data.get('product_uom_qty', 0.0), account_maked, '']
+                    DB_line[key] = [oc_line_id, True,
+                        data_update.get(
+                            'product_uom_qty', 0.0), account_maked, '']
                     # product_uom_maked_sync_qty
-                    # data.get('sync_state', False), # TODO change?
+                    # data_update.get('sync_state', False), # TODO change?
             except:
                 _logger.error('Problem with oc line record: %s\n%s' % (
                     oc_line, sys.exc_info()))
