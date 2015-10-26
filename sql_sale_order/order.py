@@ -248,7 +248,7 @@ class SaleOrderSql(orm.Model):
         # ---------------------------------------------------------------------
         #                               IMPORT LINE
         # ---------------------------------------------------------------------
-        _logger.info("Start import OC lines")
+        _logger.info('Start import OC lines')
         line_pool = self.pool.get('sale.order.line')
         DB_line = {}
         if update:
@@ -280,7 +280,7 @@ class SaleOrderSql(orm.Model):
         if not cr_oc_line:
             _logger.error('Cannot connect to MSSQL OC_RIGHE')
             return
-        
+
         i = 0
         for oc_line in cr_oc_line:
             try:
@@ -321,6 +321,11 @@ class SaleOrderSql(orm.Model):
                 # pack * unit item * conversion
                 quantity = (oc_line['NGB_COLLI'] or 1.0) * (
                     oc_line['NQT_RIGA_O_PLOR'] or 0.0) * 1.0 / conversion
+                
+                try:
+                    family_id = product_browse.family_id.id
+                except:
+                    family_id = False    
 
                 # HEADER: Save deadline in OC (only first time):
                 if not oc_header[oc_key][1]:
@@ -358,11 +363,12 @@ class SaleOrderSql(orm.Model):
 
                 # Create only record:                
                 data_create = { # create
+                    # Notmal fields -------------------------------------------
                     'product_id': product_browse.id,
                     'date_deadline': date_deadline,
                     'product_uom': uom_id,
                     'name': oc_line['CDS_VARIAZ_ART'],
-                    #`family_id now is related!
+                    
                     'price_unit': (
                         oc_line['NPZ_UNIT'] or 0.0) * conversion,
                     'tax_id': [
@@ -372,6 +378,10 @@ class SaleOrderSql(orm.Model):
                     'sequence': sequence,
                     'discount': discount,
                     'multi_discount_rates': multi_discount_rates,
+                    
+                    # Related fields ------------------------------------------
+                    'accounting_order': True,
+                    'family_id': family_id,
                     }
                         
                 # --------------------
@@ -441,11 +451,6 @@ class SaleOrderSql(orm.Model):
                 _logger.error('Problem with oc line record: %s\n%s' % (
                     oc_line, sys.exc_info()))
 
-        # Force related update:
-        self.write(cr, uid, new_ids, {
-            'accounting_order': True,
-            }, context=context)
-            
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!        
         _logger.info('End importation OC header and line!')
         return
