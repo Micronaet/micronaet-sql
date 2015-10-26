@@ -243,6 +243,7 @@ class SaleOrderSql(orm.Model):
         # ---------------------------------------------------------------------
         #                               IMPORT LINE
         # ---------------------------------------------------------------------
+        import pdb; pdb.set_trace()
         _logger.info("Start import OC lines")
         line_pool = self.pool.get('sale.order.line')
         DB_line = {}
@@ -332,9 +333,10 @@ class SaleOrderSql(orm.Model):
                     
                 discount = False
                 multi_discount_rate = False    
-                if oc_line['CSG_SCN']:
+                account_scale = oc_line['CSG_SCN'].strip()
+                if account_scale:
                     res = line_pool.on_change_multi_discount(
-                        cr, uid, False, oc_line['CSG_SCN'], context=context)
+                        cr, uid, False, account_scale, context=context)
                     try:
                         discount = res.value.get('discount', False)
                         multi_discount_rate = res.value.get(
