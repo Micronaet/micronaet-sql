@@ -1,6 +1,29 @@
 <?xml version="1.0" ?>
 <openerp>
 	<data>
+	<!--product.product-->
+    <record model="ir.ui.view" id="product_normal_manufacture_form_view">
+        <field name="name">Product for production</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <field name="route_ids" position="after">
+                <field name="internal_manufacture" />
+            </field>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="product_normal_manufacture_tree_view">
+        <field name="name">Product for production</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_product_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="internal_manufacture" invisible="1"/>
+                <button name="do_nothing" string="Internal manufacture" type="object" icon="terp-product" attrs="{'invisible': [('internal_manufacture', '=', False)]}" />
+            </field>
+        </field>
+    </record>
+	
 	<!-- Create view for manage production (non visible, used in production modules)-->
 	<!-- sale.order.line *****************************-->
     <record model="ir.ui.view" id="view_sale_order_line_search">

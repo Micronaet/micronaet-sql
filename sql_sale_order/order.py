@@ -46,7 +46,13 @@ class ProductProduct(orm.Model):
     """
     _inherit = 'product.product'
     
+    def do_nothing(self, cr, uid, context=None):
+        ''' For button only showed
+        '''
+        return True
+        
     _columns = {
+         # TODO when twe use variant move in product.template
          'internal_manufacture': fields.boolean('Interal manufacture',
              help='This product will go in production'),
          }

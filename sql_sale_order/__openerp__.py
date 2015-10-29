@@ -33,7 +33,8 @@
     'license': 'AGPL-3',
     'depends': [
         'base', 
-        'base_mssql_accounting',       
+        'base_mssql_accounting',
+        'product',       
         'sale',
         'order_delivery', # git branch Micronaet/micronaet-mx8.git
         'order_destination', # git branch Micronaet/micronaet-mx8.git        
