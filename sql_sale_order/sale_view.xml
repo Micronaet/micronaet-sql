@@ -41,6 +41,7 @@
         <field name="priority" eval="20"/>
         <field name="arch" type="xml">
             <tree string="OC line"><!-- colors="red:accounting_state=='deleted';black:mandatory_delivery;blue:mrp_production_id;green:to_produce==False">-->
+                    <field name="is_manufactured"  /> <!--TODO invisible="1"-->
                     <field name="partner_id" />
                     <field name="order_id" />                   
                     <field name="default_code" />

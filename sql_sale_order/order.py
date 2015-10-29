@@ -477,6 +477,21 @@ class SaleOrderSql(orm.Model):
         'accounting_state': lambda *x: 'new',
         }
 
+class StockLocationRoute(orm.Model):
+    ''' Add extra function to route:
+    '''
+    _inherit = 'stock.location.route'
+    
+    def _get_manufacture_id(self, cr, uid, context=None):
+        ''' Get name Manufacture return ID
+        '''
+        stock_ids = self.search(cr, uid, [
+            ('name', '=', 'Manufacture')], context=context)
+        if not stock_ids: 
+            _logger.error('Error no "Manufacture" in stock.location.route')
+            return False  
+        return stock_ids[0]
+
 class sale_order_line_extra(osv.osv):
     """ Create extra fields in sale.order.line obj
     """    
@@ -485,6 +500,7 @@ class sale_order_line_extra(osv.osv):
     # -------------------------------------
     # Related  field optimization function:
     # -------------------------------------
+    # accounting_order:
     def _get_accounting_state(self, cr, uid, ids, context=None):
         ''' When change accounting state information in order propagate
             also in order line
@@ -492,13 +508,45 @@ class sale_order_line_extra(osv.osv):
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('order_id', 'in', ids)], context=context)
 
+    # partner_id:
     def _get_new_name(self, cr, uid, ids, context=None):
         ''' Check when partner are modify the line to update
         '''
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('order_id', 'in', ids)], context=context)
-         
+    
+    # is_manufactured:     
+    def _refresh_manufacture_state(self, cr, uid, ids, context=None):
+        ''' When change manufacture route in product update all lines
+        '''        
+        return self.pool.get('sale.order.line').search(cr, uid, [
+            ('product_id', 'in', ids)], context=context)
+
+    def _function_is_manufactured(self, cr, uid, ids, fields, args, 
+            context=None):
+        ''' Fields function for calculate is manufactured product
+        '''
+        res = {}
+        manufacture_id = self.pool.get(
+            'stock.location.route')._get_manufacture_id(
+                cr, uid, context=context)
+        if not manufacture_id:
+            # TODO raise error:
+            return res
+        
+        for line in self.browse(cr, uid, ids, context=context):
+            res[line.id] = manufacture_id in [
+                item.id for item in line.product_id.route_ids]
+        return res
+        
     _columns = {
+        'is_manufactured': fields.function(
+            _function_is_manufactured, method=True, 
+            type='boolean', string='Is manufactured', 
+            help='True if product has manufactured check',
+            store={'product.product': (
+                _refresh_manufacture_state, ['route_ids'], 10)}), 
+                        
         'accounting_order': fields.related(
             'order_id', 'accounting_order', type='boolean', 
             string='Accounting order', store={
