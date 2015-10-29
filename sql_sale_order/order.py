@@ -41,6 +41,16 @@ from utility import *
 
 _logger = logging.getLogger(__name__)
 
+class ProductProduct(orm.Model):
+    """ Production extra fields:
+    """
+    _inherit = 'product.product'
+    
+    _columns = {
+         'internal_manufacture': fields.boolean('Interal manufacture',
+             help='This product will go in production'),
+         }
+
 class SaleOrderSql(orm.Model):
     """Update basic object for import accounting elements
        NOTE: in this procedure there's some fields that are created
@@ -365,7 +375,7 @@ class SaleOrderSql(orm.Model):
                     'product_uom_qty': quantity,
                     'order_id': order_id,
                     }
-
+                
                 # Create only record:                
                 data_create = { # create
                     # Notmal fields -------------------------------------------
@@ -388,6 +398,7 @@ class SaleOrderSql(orm.Model):
                     'accounting_order': True,
                     'family_id': family_id,
                     'partner_id': order_partner.get(order_id, False),
+                    'is_manufactured': product_browse.internal_manufacture,
                     }
 
                 # --------------------
@@ -477,21 +488,6 @@ class SaleOrderSql(orm.Model):
         'accounting_state': lambda *x: 'new',
         }
 
-class StockLocationRoute(orm.Model):
-    ''' Add extra function to route:
-    '''
-    _inherit = 'stock.location.route'
-    
-    def _get_manufacture_id(self, cr, uid, context=None):
-        ''' Get name Manufacture return ID
-        '''
-        stock_ids = self.search(cr, uid, [
-            ('name', '=', 'Manufacture')], context=context)
-        if not stock_ids: 
-            _logger.error('Error no "Manufacture" in stock.location.route')
-            return False  
-        return stock_ids[0]
-
 class sale_order_line_extra(osv.osv):
     """ Create extra fields in sale.order.line obj
     """    
@@ -522,30 +518,13 @@ class sale_order_line_extra(osv.osv):
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('product_id', 'in', ids)], context=context)
 
-    def _function_is_manufactured(self, cr, uid, ids, fields, args, 
-            context=None):
-        ''' Fields function for calculate is manufactured product
-        '''
-        res = {}
-        manufacture_id = self.pool.get(
-            'stock.location.route')._get_manufacture_id(
-                cr, uid, context=context)
-        if not manufacture_id:
-            # TODO raise error:
-            return res
-        
-        for line in self.browse(cr, uid, ids, context=context):
-            res[line.id] = manufacture_id in [
-                item.id for item in line.product_id.route_ids]
-        return res
-        
     _columns = {
-        'is_manufactured': fields.function(
-            _function_is_manufactured, method=True, 
-            type='boolean', string='Is manufactured', 
+        'is_manufactured': fields.related(
+            'product_id', 'internal_manufacture', type='boolean', 
+            string='Is manufactured', 
             help='True if product has manufactured check',
             store={'product.product': (
-                _refresh_manufacture_state, ['route_ids'], 10)}), 
+                _refresh_manufacture_state, ['internal_manufacture'], 10)}), 
                         
         'accounting_order': fields.related(
             'order_id', 'accounting_order', type='boolean', 
