@@ -78,8 +78,10 @@ class micronaet_accounting(orm.Model):
     # -----------------
     # Utility function:
     # -----------------
-    def connect(self, cr, uid, context=None):
+    def connect(self, cr, uid,  year=False, context=None):
         ''' Connect action for link to MSSQL DB
+            v. 7:
+            year TODO
         '''
         try:
             connection = self.pool.get('res.company').mssql_connect(
