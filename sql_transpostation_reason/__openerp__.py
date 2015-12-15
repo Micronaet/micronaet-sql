@@ -24,16 +24,17 @@
     'name': 'SQL Transportation reason',
     'version': '0.0.1',
     'category': 'Generic Modules/ETL',
-    'description': """Import Payment from external DB in MS SQL server or MySQL
-                   """,
+    'description': '''
+        Import Payment from external DB in MS SQL server or MySQL
+        ''',
     'author': 'Micronaet s.r.l.',
     'website': 'http://www.micronaet.it',
     'depends': [
         'base',
-        'l10n_it_ddt',
         'base_mssql',
         'base_mssql_accounting',
-    ],
+        'l10n_it_ddt',
+        ],
     'init_xml': [], 
     'data': [
         'scheduler.xml',
@@ -41,5 +42,5 @@
     'demo_xml': [],
     'active': False, 
     'installable': True, 
-}
+    }
 

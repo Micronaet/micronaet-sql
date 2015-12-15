@@ -38,7 +38,6 @@ _logger = logging.getLogger(__name__)
 class stock_picking_transportation_reason(osv.osv):
     ''' Extend stock.picking.transportation_reason
     '''    
-    _name = 'stock.picking.transportation_reason'
     _inherit = 'stock.picking.transportation_reason'
     
     # -------------------------------------------------------------------------
