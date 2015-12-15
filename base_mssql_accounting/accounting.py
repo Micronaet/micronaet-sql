@@ -525,6 +525,40 @@ class micronaet_accounting(orm.Model):
                 sys.exc_info(), ))
             return False  # Error return nothing    
         
+    def get_oc_line_filtered(self, cr, uid, CSG_DOC, NGB_SR_DOC, NGL_DOC, 
+            context=None):
+        ''' Return quantity element for product
+            Table: OC_RIGHE
+            cr: database cursor
+            uid: user ID
+            with_desc: load also description line
+            context: context for parameters
+        '''
+        table = "oc_righe"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)
+        where = " WHERE CSG_DOC='%s' AND NGB_SR_DOC='%s' AND NGL_DOC='%s'" % (
+            CSG_DOC, NGB_SR_DOC, NGL_DOC)
+
+        try:
+            cursor.execute("""
+                SELECT 
+                    CSG_DOC, NGB_SR_DOC, NGL_DOC, NPR_RIGA, DTT_SCAD, CKY_ART, 
+                    NGB_TIPO_QTA, NQT_RIGA_O_PLOR, NPR_SORT_RIGA, NCF_CONV, 
+                    NPZ_UNIT, CDS_VARIAZ_ART, IST_RIGA_SOSP, NGB_COLLI, 
+                    CSG_SCN, CDS_DESC, IST_RIGA
+                FROM %s%s;""" % (table, where))
+            # no: NPZ_UNIT, NGL_RIF_RIGA, NPR_SORT_RIGA, NKY_CAUM, NKY_DEP
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False  # Error return nothing    
+
     def get_oc_line(self, cr, uid, with_desc=False, context=None):
         ''' Return quantity element for product
             Table: OC_RIGHE
