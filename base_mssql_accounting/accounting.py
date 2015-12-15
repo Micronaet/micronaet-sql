@@ -161,6 +161,24 @@ class micronaet_accounting(orm.Model):
     # ----------
     #  PARTNER -
     # ---------
+    def get_partner_transport(self, cr, uid, year=False, context=None):
+        ''' Import partner-vector information
+        '''
+        if self.pool.get('res.company').table_capital_name(cr, uid, 
+                context=context):
+            table = "PC_VETTORI" 
+        else:
+            table = "pc_vettori"
+
+        cursor = self.connect(cr, uid, year=year, context=context)
+        try:
+            cursor.execute("""
+                SELECT * FROM %s WHERE CKY_CNT_VETT != '';
+                """ % table)
+            return cursor
+        except: 
+            return False
+        
     def get_partner(self, cr, uid, from_code, to_code, write_date_from=False, 
             write_date_to=False, create_date_from=False, create_date_to=False, 
             context=None):
