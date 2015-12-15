@@ -160,6 +160,29 @@ class micronaet_accounting(orm.Model):
                 sys.exc_info(), ))
             return False  # Error return nothing
 
+    def get_payment_bank(self, cr, uid, year=False, context=None):
+        ''' Access to anagrafic table of payments
+            Table: PC_CONDIZIONI_COMM
+        '''
+        table = "pc_condizioni_comm"
+        if self.pool.get('res.company').table_capital_name(cr, uid, 
+                context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, year=year, context=context)
+        try:
+            cursor.execute("""
+                SELECT 
+                    CKY_CNT, CDS_BANCA, NGL_ABI, NGL_CAB, 
+                    CKY_CNT_BAN_PREF, CSG_CC, CSG_BBAN_CIN, CSG_IBAN_PAESE,
+                    NGB_IBAN_CIN, CSG_IBAN_BBAN, CSG_BIC
+                FROM 
+                    %s;
+                """ % table)
+            return cursor # with the query setted up                  
+        except: 
+            return False  # Error return nothing
+
     # ----------
     #  PARTNER -
     # ---------
