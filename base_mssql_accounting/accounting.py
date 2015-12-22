@@ -41,7 +41,6 @@ from openerp.tools import (DEFAULT_SERVER_DATE_FORMAT,
 _logger = logging.getLogger(__name__)
 
 class product_product(orm.Model):
-    _name = 'product.product'
     _inherit = 'product.product'
     
     _columns = {
