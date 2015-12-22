@@ -133,6 +133,7 @@ class MrpBom(orm.Model):
             'product_qty': 1.0,
             'product_uom': product_proxy.uom_id.id,
             'note': _('My SQL import generation'),
+            'sql_import': True,
             }, context=context)
 
     # -------------------------------------------------------------------------
@@ -147,10 +148,10 @@ class MrpBom(orm.Model):
         '''        
         _logger.info('''
             Start import BOM from SQL, setup:
-            Verbose: %s - Capital name: %s''' % (verbose_log_count, capital))
-                
+            Verbose: %s - Capital name: %s''' % (verbose, capital))
+        
         sql_pool = self.pool.get('micronaet.accounting')
-        bom_pool = self.pool.get('mrp.bom.line')
+        line_pool = self.pool.get('mrp.bom.line')
         product_pool = self.pool.get('product.product')
 
         _logger.info('Start import BOM database')
@@ -169,61 +170,67 @@ class MrpBom(orm.Model):
             
         # Create list for search element    
         for line in line_pool.browse(cr, uid, line_ids, context=context):
-            bom_lines[(line.bom_id.id, line.product_id)] = line.id
-        
+            bom_lines[(line.bom_id.id, line.product_id.id)] = line.id
+
         for record in cursor:
             i += 1
             if verbose and i % verbose == 0:
                 _logger.info('%s record imported / updated!' % i)
-                        
+
+            try:
+                default_code = record['CKY_ART_DBA']
+                component_code = record['CKY_ART_COMP']                    
+                #_NGB_RIGA']
+                #CSG_UNIMIS
                 try:
-                    default_code = record['CKY_ART_DBA']
-                    component_code = record['CKY_ART_COMP']                    
-                    product_qty = record['CDS_FORMUL_QTA'] or 0.0 # TODO float
-                    #_NGB_RIGA']
-                    #CSG_UNIMIS
-                    
-                    if default_code not in bom_parent:
-                        bom_id = self.get_create_bom_from_product_id(
-                            cr, uid, default_code, context=context)                        
-                        bom_parent[default_code] = self.browse(
-                            cr, uid, bom_id, context=context)
-
-                    bom_proxy = bom_parent[default_code]                    
-                    component_ids = product_pool.search(cr, uid, [
-                        ('default_code', '=', component_code)], 
-                        context=context)
-                    if not component_ids:
-                        _logger.error(
-                            'Component not found: %s' % component_code)
-                        continue
-                    key = (bom_proxy.id, component_ids[0])
-
-                    component_proxy = product_pool.browse(
-                        cr, uid, component_ids, context=context)[0]
-                    line_data = {
-                        'bom_id': bom_proxy.id,
-                        'product_id': component_proxy.id,
-                        'product_qty': record['CDS_FORMUL_QTA'] or 0.0,
-                        'product_uom': component_proxy.uom_id.id,                        
-                        'name': component_proxy.name,
-                        }
-                    if key in bom_lines: # Update
-                        del(bom_lines[key])
-                        bom_line.update(
-                            cr, uid, bom_lines[key], 
-                            line_data, context=context)
-                    else: # Create
-                        bom_line.create(cr, uid, line_data, context=context)
+                    product_qty = float(record['CDS_FORMUL_QTA'].replace(
+                        ',', '.'))
                 except:
+                    product_qty = 0.0
+                
+                if not product_qty:
                     _logger.error(
-                        'Error importing partner [%s], jumped: %s' % (
-                            ref, sys.exc_info()))
+                        'No quantity: %s' % component_code)
+                    continue
+                
+                if default_code not in bom_parent:
+                    bom_id = self.get_create_bom_from_product_id(
+                        cr, uid, default_code, context=context)                        
+                    bom_parent[default_code] = self.browse(
+                        cr, uid, bom_id, context=context)
+
+                bom_proxy = bom_parent[default_code]                    
+                component_ids = product_pool.search(cr, uid, [
+                    ('default_code', '=', component_code)], 
+                    context=context)
+                if not component_ids:
+                    _logger.error(
+                        'Component not found: %s' % component_code)
+                    continue
+                key = (bom_proxy.id, component_ids[0])
+
+                component_proxy = product_pool.browse(
+                    cr, uid, component_ids, context=context)[0]
+                line_data = {
+                    'bom_id': bom_proxy.id,
+                    'product_id': component_proxy.id,
+                    'product_qty': product_qty,
+                    'product_uom': component_proxy.uom_id.id,                        
+                    'sql_import': True,
+                    }
+                if key in bom_lines: # Update
+                    line_pool.write(
+                        cr, uid, bom_lines[key], 
+                        line_data, context=context)
+                    del(bom_lines[key])
+                else: # Create
+                    line_pool.create(cr, uid, line_data, context=context)
+            except:
+                _logger.error(
+                    'Error importing bom [%s], jumped: %s' % (
+                        default_code, sys.exc_info()))
+                return False        
                                         
-        except:
-            _logger.error('Error generic import BOM: %s' % (
-                sys.exc_info(), ))
-            return False
         _logger.info('All BOM is updated!')
         return True
 

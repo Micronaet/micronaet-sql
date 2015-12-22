@@ -24,22 +24,21 @@
     'name': 'SQL Partner',
     'version': '0.0.1',
     'category': 'Generic Modules/ETL',
-    'description': """
+    'description': '''
         Import partner from external DB in MS SQL server or MySQL
-        """,
+        ''',
     'author': 'Micronaet s.r.l.',
     'website': 'http://www.micronaet.it',
     'depends': [
         'base',
-        'product',
+        'mrp',
         'base_mssql',
         'base_mssql_accounting',
-        'partner_addresses',
         ],
     'init_xml': [], 
     'data': [
         'scheduler.xml',
-        'partner_views.xml',
+        'bom_views.xml',
         ],
     'demo_xml': [],
     'active': False, 
