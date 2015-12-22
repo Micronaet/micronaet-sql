@@ -84,57 +84,109 @@ class MrpBom(orm.Model):
     # -------------------------------------------------------------------------
     #                                 Utility
     # -------------------------------------------------------------------------
-    def get_bom_from_product_id(self, cr, uid, code, context=None):
-        ''' Return partner_id read from the import code passed
-            (search in customer, supplier, destiantion)
-        '''
+    def get_create_bom_from_product_id(self, cr, uid, default_code, 
+            context=None):
+        ''' Return bom_id read for product code passed
+            create if not present
+        '''        
+        product_pool = self.pool.get('product.product')
+        product_ids = product_pool.search(cr, uid, [
+            ('default_code', '=', default_code)], context=context)
+            
+        if not product_ids:
+            _logger.error(
+                'BOM product not found: %s, reimport list' % default_code)
+            return False
+            
+        if not product_ids: # warning
+            _logger.warning(
+                'BOM product found more than one: %s, reimport list' % \
+                    default_code)
         
-        bom_id = self.search(cr, uid, [
-            ('sql_bom_code', '=', code),
+        bom_ids = self.search(cr, uid, [
+            ('sql_import', '=', True),
+            ('product_id', '=', product_ids[0]), # XXX no template!
             ], context=context)
             
-        if bom_id:
-            return bom_id[0]
-        return False
+        if bom_ids:
+            return bom_ids[0]
+            
+        product_proxy = product_pool.browse(
+            cr, uid, product_ids, context=context)[0]    
+        return self.create(cr, uid, {        
+            'product_tmpl_id': product_proxy.product_tmpl_id.id, 
+            'product_id': product_ids[0], 
+            'code': product_proxy.default_code, 
+            'type': 'normal',
+            'product_qty': 1.0,
+            'product_uom': product_proxy.uom_id.uom_id,
+            'note': _('My SQL import generation'),
+            }, context=context)    
 
     # -------------------------------------------------------------------------
     #                             Scheduled action
     # -------------------------------------------------------------------------
-    def schedule_bom_mport(self, cr, uid, verbose_log_count=100, capital=True, 
+    def schedule_bom_import(self, cr, uid, verbose=100, capital=True, 
             context=None):
         ''' Import partner from external MySQL DB        
             verbose_log_count: number of record for verbose log (0 = nothing)
             capital: if table has capital letters (usually with mysql in win)
             context: dict for extra parameter            
-        '''
-        
+        '''        
         _logger.info('''
             Start import BOM from SQL, setup:
             Verbose: %s - Capital name: %s''' % (
                 verbose_log_count, capital))
         sql_pool = self.pool.get('micronaet.accounting')
+        bom_pool = self.pool.get('mrp.bom.line')
 
-        cursor = sql_pool.get_partner(
-            cr, uid, context=context) 
+     
+        cursor = sql_pool.get_bom_line(cr, uid, context=context) 
         if not cursor:
             _logger.error("Unable to connect, no BOM!")
             return False
 
         _logger.info('Start import BOM database')
         i = 0
+        bom_parent = {} # Database for convert code in bom         
+        bom_lines = {} # Database of lines
+        
+        # Load line database (for deletion)
+        line_ids = line_pool.search(cr, uid, [ # TODO
+            ('sql_import', '=', True)], context=context)            
+            
+        # Create list for search element    
+        for line in line_pool.browse(cr, uid, line_ids, context=context):
+            bom_lines[(line.bom_id.id, line.product_id)] = line.id
+        
         for record in cursor:
             i += 1
-            if verbose_log_count and i % verbose_log_count == 0:
+            if verbose and i % verbose == 0:
                 _logger.info('%s record imported / updated!' % i)
                         
                 try:
-                    ref = record['CKY_CNT']
+                    default_code = record['CKY_ART_DBA']
+                    #_NGB_RIGA']
+                    component_code = record['CKY_ART_COMP']                    
+                    product_qty = record['CDS_FORMUL_QTA'] or 0.0 # TODO float
+                    #CSG_UNIMIS
                     
-                    data = {
-                        key_field: ref,
+                    if default_code not in bom_parent:
+                        bom_id = self.get_create_bom_from_product_id(
+                            cr, uid, default_code, context=context)                        
+                        bom_parent[default_code] = self.browse(
+                            cr, uid, bom_id, context=context)
+
+                    bom_proxy = bom_parent[default_code]                    
+                    product_id =                            
+                    
+                    product_proxy
+                    line_data = {
+                        'product_id': product_proxy.id,
+                        'product_qty': record['CDS_FORMUL_QTA'] or 0.0,
+                        'product_uom': product_proxy.uom_id.id,
+                        
                         'name': record['CDS_CNT'],
-                        'sql_import': True,
-                        'street': record['CDS_INDIR'] or False,
                         }
 
                     # if not in convert dict try to search
