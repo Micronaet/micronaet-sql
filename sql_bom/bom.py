@@ -59,14 +59,26 @@ class micronaet_accounting(orm.Model):
             table = table.upper()
 
         cursor = self.connect(cr, uid, context=context)
-        try:#                        ID       Description
+        try:
             cursor.execute("""SELECT * FROM %s;""" % table)
-            return cursor # with the query setted up                  
+            return cursor                  
         except: 
             _logger.error("Executing query %s: [%s]" % (
-                table,
-                sys.exc_info(), ))
+                table, sys.exc_info(), ))
             return False 
+
+class MrpBomLine(orm.Model):
+    ''' Add extra field to bom for importation
+    '''
+    _inherit = 'mrp.bom.line'
+    
+    _columns = {
+        'sql_import': fields.boolean('SQL import'),
+        }
+
+    _defaults = {
+        'sql_import': lambda *a: False,
+        }
 
 class MrpBom(orm.Model):
     ''' Add extra field to bom for importation
@@ -98,7 +110,7 @@ class MrpBom(orm.Model):
                 'BOM product not found: %s, reimport list' % default_code)
             return False
             
-        if not product_ids: # warning
+        if len(product_ids) > 1: # warning
             _logger.warning(
                 'BOM product found more than one: %s, reimport list' % \
                     default_code)
@@ -119,9 +131,9 @@ class MrpBom(orm.Model):
             'code': product_proxy.default_code, 
             'type': 'normal',
             'product_qty': 1.0,
-            'product_uom': product_proxy.uom_id.uom_id,
+            'product_uom': product_proxy.uom_id.id,
             'note': _('My SQL import generation'),
-            }, context=context)    
+            }, context=context)
 
     # -------------------------------------------------------------------------
     #                             Scheduled action
@@ -135,24 +147,24 @@ class MrpBom(orm.Model):
         '''        
         _logger.info('''
             Start import BOM from SQL, setup:
-            Verbose: %s - Capital name: %s''' % (
-                verbose_log_count, capital))
+            Verbose: %s - Capital name: %s''' % (verbose_log_count, capital))
+                
         sql_pool = self.pool.get('micronaet.accounting')
         bom_pool = self.pool.get('mrp.bom.line')
+        product_pool = self.pool.get('product.product')
 
-     
+        _logger.info('Start import BOM database')
         cursor = sql_pool.get_bom_line(cr, uid, context=context) 
         if not cursor:
             _logger.error("Unable to connect, no BOM!")
             return False
 
-        _logger.info('Start import BOM database')
         i = 0
         bom_parent = {} # Database for convert code in bom         
         bom_lines = {} # Database of lines
         
         # Load line database (for deletion)
-        line_ids = line_pool.search(cr, uid, [ # TODO
+        line_ids = line_pool.search(cr, uid, [
             ('sql_import', '=', True)], context=context)            
             
         # Create list for search element    
@@ -166,9 +178,9 @@ class MrpBom(orm.Model):
                         
                 try:
                     default_code = record['CKY_ART_DBA']
-                    #_NGB_RIGA']
                     component_code = record['CKY_ART_COMP']                    
                     product_qty = record['CDS_FORMUL_QTA'] or 0.0 # TODO float
+                    #_NGB_RIGA']
                     #CSG_UNIMIS
                     
                     if default_code not in bom_parent:
@@ -178,57 +190,41 @@ class MrpBom(orm.Model):
                             cr, uid, bom_id, context=context)
 
                     bom_proxy = bom_parent[default_code]                    
-                    product_id =                            
-                    
-                    product_proxy
-                    line_data = {
-                        'product_id': product_proxy.id,
-                        'product_qty': record['CDS_FORMUL_QTA'] or 0.0,
-                        'product_uom': product_proxy.uom_id.id,
-                        
-                        'name': record['CDS_CNT'],
-                        }
-
-                    # if not in convert dict try to search
-                    if not data['parent_id']:
-                        parent_ids = self.search(cr, uid, ['|',
-                            ('sql_customer_code', 
-                                '=', parent_code),
-                            ('sql_supplier_code', 
-                                '=', parent_code),
-                            ], context=context)
-                    if parent_ids:
-                        data['parent_id'] = parent_ids[0]
-
-                    # Extra domain for search also in cust. / suppl.
-                    if dest_merged:                              
-                        # Remove if import error in cust. / suppl.
-                        data['sql_customer_code'] = False
-                        data['sql_supplier_code'] = False
-                        # Search all for correct  startup error of imp.
-                        domain = [ 
-                            '|', '|',
-                            ('sql_customer_code', '=', ref),
-                            ('sql_supplier_code', '=', ref),
-                            ('sql_destination_code', '=', ref),
-                            ]
-                    else:
-                        # TODO when are we here?
-                        #_logger.error(
-                        #    'Destination: %s without parent code' % ref)
-                        continue
-
-
-                    except:
+                    component_ids = product_pool.search(cr, uid, [
+                        ('default_code', '=', component_code)], 
+                        context=context)
+                    if not component_ids:
                         _logger.error(
-                            'Error importing partner [%s], jumped: %s' % (
-                                ref, sys.exc_info()))
-                                            
-                _logger.info('All BOM is updated!')
+                            'Component not found: %s' % component_code)
+                        continue
+                    key = (bom_proxy.id, component_ids[0])
+
+                    component_proxy = product_pool.browse(
+                        cr, uid, component_ids, context=context)[0]
+                    line_data = {
+                        'bom_id': bom_proxy.id,
+                        'product_id': component_proxy.id,
+                        'product_qty': record['CDS_FORMUL_QTA'] or 0.0,
+                        'product_uom': component_proxy.uom_id.id,                        
+                        'name': component_proxy.name,
+                        }
+                    if key in bom_lines: # Update
+                        del(bom_lines[key])
+                        bom_line.update(
+                            cr, uid, bom_lines[key], 
+                            line_data, context=context)
+                    else: # Create
+                        bom_line.create(cr, uid, line_data, context=context)
+                except:
+                    _logger.error(
+                        'Error importing partner [%s], jumped: %s' % (
+                            ref, sys.exc_info()))
+                                        
         except:
             _logger.error('Error generic import BOM: %s' % (
                 sys.exc_info(), ))
             return False
+        _logger.info('All BOM is updated!')
         return True
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
