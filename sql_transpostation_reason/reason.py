@@ -35,6 +35,33 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+
+class micronaet_accounting(osv.osv):
+    ''' Extend with method
+    '''
+    _inherit = 'micronaet.accounting'
+
+    # ------------
+    #  TRANSPORT -
+    # ------------
+    def get_transportation(self, cr, uid, year=False, context=None):
+        ''' Access to anagrafic table of transportation
+            Table: MC_CAUS_MOVIMENTI
+        '''
+        if self.pool.get('res.company').table_capital_name(cr, uid, 
+                context=context):
+            table = 'MC_CAUS_MOVIMENTI' 
+        else:
+            table = 'mc_caus_movimenti'
+
+        cursor = self.connect(cr, uid, year=year, context=context)
+        try:
+            cursor.execute('''SELECT NKY_CAUM, CDS_CAUM FROM %s;''' % table)
+            return cursor # with the query setted up                  
+        except: 
+            return False  # Error return nothing
+
+
 class stock_picking_transportation_reason(osv.osv):
     ''' Extend stock.picking.transportation_reason
     '''    
@@ -60,12 +87,12 @@ class stock_picking_transportation_reason(osv.osv):
         ''' Import transportation
         '''            
         try:
-            _logger.info('Start import SQL: transportation')
+            _logger.info('Start import SQL: transportation reasons')
             
             cursor = self.pool.get('micronaet.accounting').get_transportation(
                 cr, uid, context=context)
             if not cursor:
-                _logger.error("Unable to connect, no transportation!")
+                _logger.error('Unable to connect, no transportation!')
                 return True
 
             _logger.info('Start import transportation')                          

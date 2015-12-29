@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<openerp>
+<data>
+    <!--res.partner--> 
+    <record model="ir.ui.view" id="view_partner_form_agent_accounting">
+        <field name="name">SQL partner agent</field>
+        <field name="model">res.partner</field>        
+        <field name="inherit_id" ref="base.view_partner_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page//field[@name='user_id']" position="after">
+                <field name="is_agent" />
+                <field name="sql_agent_code" />
+                <field name="agent_id" />
+            </xpath>
+        </field>
+    </record>
+    <record model="ir.ui.view" id="view_partner_tree_agent_accounting">
+        <field name="name">SQL partner agent tree</field>
+        <field name="model">res.partner</field>        
+        <field name="inherit_id" ref="base.view_partner_tree" />
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="is_agent" />
+                <field name="sql_agent_code" />
+                <field name="agent_id" />
+            </field>
+        </field>
+    </record>
+</data>
+</openerp>
+
