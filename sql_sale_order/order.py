@@ -480,7 +480,7 @@ class SaleOrderSql(orm.Model):
 
     _columns = {
         'accounting_order': fields.boolean(
-            'Accounting order',
+            'Accounting imported order',
             help='Automatic generation from importation'),
         'accounting_state': fields.selection([
             ('new', 'New'), # New
