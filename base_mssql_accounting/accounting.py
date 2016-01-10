@@ -554,12 +554,12 @@ class micronaet_accounting(orm.Model):
 
         cursor = self.connect(cr, uid, context=context)
         try:
+            '''CSG_DOC, NGB_SR_DOC, NGL_DOC, DTT_DOC, CKY_CNT_CLFR, 
+               CKY_CNT_SPED_ALT, CKY_CNT_AGENTE, CKY_CNT_VETT, IST_PORTO, 
+               CDS_NOTE
+            '''
             cursor.execute("""
-                SELECT 
-                    CSG_DOC, NGB_SR_DOC, NGL_DOC, DTT_DOC, CKY_CNT_CLFR, 
-                    CKY_CNT_SPED_ALT, CKY_CNT_AGENTE, CKY_CNT_VETT, IST_PORTO, 
-                    CDS_NOTE
-                FROM %s;""" % table)
+                SELECT * FROM %s;""" % table)
             return cursor # with the query setted up
         except: 
             _logger.error("Executing query %s: [%s]" % (

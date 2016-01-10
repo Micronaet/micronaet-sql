@@ -1,6 +1,21 @@
 <?xml version="1.0" ?>
 <openerp>
 	<data>
+	<!--temp button-->
+	<record model="ir.ui.view" id="view_sale_order_import_button_form">
+	    <field name="name">sale.order.form</field>
+	    <field name="model">sale.order</field>
+	    <field name="inherit_id" ref="sale.view_order_form"/>
+	    <field name="arch" type="xml">
+	        <field name="name" position="after"> 
+	            <button name="update_extra_data_order" string="Update order header" type="object" />
+	        </field>
+	    </field>
+	</record>
+	
+	
+	
+	
 	<!--product.product-->
     <record model="ir.ui.view" id="product_normal_manufacture_form_view">
         <field name="name">Product for production</field>

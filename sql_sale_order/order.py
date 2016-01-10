@@ -75,17 +75,90 @@ class SaleOrderSql(orm.Model):
         else:
             return False
     
+    
+    def update_extra_data_order(self, cr, uid, ids, context=None):
+        ''' Temp procedure as a button for now!
+        '''
+        _logger.info('Start update extra info OC header')
+            
+        query_pool = self.pool.get('micronaet.accounting')
+        partner_pool = self.pool.get('res.partner')
+
+        # --------
+        # Utility:
+        # --------
+        def get_oc_key(record):
+            """ Compose and return key for OC
+            """
+            return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
+                record['NGL_DOC'])
+
+        cr_oc = query_pool.get_oc_header(cr, uid, context=context)
+        if not cr_oc:
+            _logger.error('Cannot connect to MSSQL OC_TESTATE')
+            return
+
+        for oc in cr_oc:
+            try:
+                # ------------------------------
+                # Find order in ODOO from MySQL:
+                # ------------------------------
+                data = {}
+                name = "MX-%s/%s" % (
+                    oc['NGL_DOC'],
+                    oc['DTT_DOC'].strftime("%Y"),
+                    )
+                oc_ids = self.search(cr, uid, [
+                    ('name', '=', name),
+                    ('accounting_order', '=', True),
+                    ], context=context)
+                    
+                if not oc_ids:
+                    _logger.warning('Not found: %s' % name)
+                    continue
+                    
+                # ------------------------------------------------    
+                # Update alternate sped address.: CKY_CNT_SPED_ALT
+                # ------------------------------------------------    
+                destination_partner_code =  oc['CKY_CNT_SPED_ALT']
+                if destination_partner_code:
+                    partner_ids = partner_pool.search(cr, uid, [
+                        ('sql_destination_code', '=', destination_partner_code)
+                        ], context=context)
+                    if partner_ids:
+                        data['destination_partner_id'] = partner_ids[0]
+                    else:
+                        _logger.warning('Destination code not found: %s' % (
+                            destination_partner_code))
+                
+                # --------------------------
+                # Write record if populated:        
+                # --------------------------
+                if data:
+                    self.write(cr, uid, oc_ids[0], data, context=context)
+                    _logger.info('Updated: %s {%s}' % (name, data))
+                else:    
+                    _logger.info('Jumped: %s' % name)
+                    
+
+            except:
+                _logger.error("Problem with record: %s > %s"%(
+                    oc, sys.exc_info()))
+        return
+
+        
     # =========================================================================
     #                               SCHEDULED ACTION
     # =========================================================================
     def schedule_etl_sale_order(self, cr, uid, update=False, delete=False,
-             context=None):
+             extra_info=True, context=None):
         """ Import OC and create sale.order
             self: instance
             cr: database cursor
             uid: user ID
             update: if False create only new record, True try a sync wiht key
             delete: if True delete order no more present
+            extra_info: update only extra info # TODO not used for now!
         """
         _logger.info('Start import OC header mode: "%s"' % (
             'update' if update else 'new only'))
