@@ -126,7 +126,15 @@ class SaleOrderSql(orm.Model):
                 cc_ids = cc_pool.search(cr, uid, [], context=context)
                 for item in cc_pool.browse(cr, uid, cc_ids, context=context):
                     if item.account_code:
-                        cc_condition[item.account_code] = item.id
+                        carriage_condition[item.account_code] = item.id
+
+                # Create a converter for transportation reason:
+                transportation_reason = {}
+                tr_pool = self.pool.get('stock.picking.transportation_reason')
+                tr_ids = cc_pool.search(cr, uid, [], context=context)
+                for item in tr_pool.browse(cr, uid, tr_ids, context=context):
+                    if item.import_id:
+                        carriage_condition[item.import_id] = item.id
                     
                 # ------------------------------------------------    
                 # Update alternate sped address.: CKY_CNT_SPED_ALT
@@ -163,8 +171,26 @@ class SaleOrderSql(orm.Model):
                         _logger.info('Carriage condition update: %s' % name)
                     else:
                         _logger.warning('Carriage condition not found: %s' % (
-                            carriage_condition_code)
+                            carriage_condition_code))
 
+                # ---------------------------
+                # Update note: NKY_CAUM
+                # ---------------------------
+                # TODO 
+                transportation_reason_code = oc['NKY_CAUM']
+                
+                if transportation_reason_code:
+                    transportation_reason_id = transportation_reason.get(
+                        transportation_reason_code, False)
+                    if transportation_reason_id:    
+                        data['transportation_reason_id'
+                            ] = transportation_reason_id
+                        _logger.info('Tranportation reason update: %s' % name)
+                    else:
+                        _logger.warning(
+                            'Tranportation reason not found: %s' % (
+                                transportation_reason_code))
+                
                 # -----------------------
                 # Update payment: NKY_PAG
                 # -----------------------
