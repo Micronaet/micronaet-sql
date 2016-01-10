@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <openerp>
 	<data>
-	<!--temp button-->
+	<!-- **********************  temp button   *****************************-->
 	<record model="ir.ui.view" id="view_sale_order_import_button_form">
 	    <field name="name">sale.order.form</field>
 	    <field name="model">sale.order</field>
@@ -12,8 +12,7 @@
 	        </field>
 	    </field>
 	</record>
-	
-	
+	<!-- **********************  temp button   *****************************-->
 	
 	
 	<!--product.product-->

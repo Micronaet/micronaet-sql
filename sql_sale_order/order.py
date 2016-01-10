@@ -116,11 +116,22 @@ class SaleOrderSql(orm.Model):
                 if not oc_ids:
                     _logger.warning('Not found: %s' % name)
                     continue
+
+                # -----------
+                # Converters:
+                # -----------
+                # Create a converter for carriage condition:
+                carriage_condition = {}
+                cc_pool = self.pool.get('stock.picking.carriage_condition')
+                cc_ids = cc_pool.search(cr, uid, [], context=context)
+                for item in cc_pool.browse(cr, uid, cc_ids, context=context):
+                    if item.account_code:
+                        cc_condition[item.account_code] = item.id
                     
                 # ------------------------------------------------    
                 # Update alternate sped address.: CKY_CNT_SPED_ALT
                 # ------------------------------------------------    
-                destination_partner_code =  oc['CKY_CNT_SPED_ALT']
+                destination_partner_code = oc['CKY_CNT_SPED_ALT']
                 if destination_partner_code:
                     partner_ids = partner_pool.search(cr, uid, [
                         ('sql_destination_code', '=', destination_partner_code)
@@ -130,6 +141,53 @@ class SaleOrderSql(orm.Model):
                     else:
                         _logger.warning('Destination code not found: %s' % (
                             destination_partner_code))
+
+                # -----------------------------
+                # Update parcels: NGB_TOT_COLLI
+                # -----------------------------
+                parcels = oc['NGB_TOT_COLLI']
+                if parcels:
+                    data['parcels'] = parcels
+                    _logger.info('Update parcels: %s' % name)
+                
+                # -----------------------
+                # Update porto: IST_PORTO
+                # -----------------------
+                carriage_condition_code = oc['IST_PORTO']
+                
+                if carriage_condition_code:
+                    carriage_condition_id = carriage_condition.get(
+                        carriage_condition_code, False)
+                    if carriage_condition_id:    
+                        data['carriage_condition_id'] = carriage_condition_id
+                        _logger.info('Carriage condition update: %s' % name)
+                    else:
+                        _logger.warning('Carriage condition not found: %s' % (
+                            carriage_condition_code)
+
+                # -----------------------
+                # Update payment: NKY_PAG
+                # -----------------------
+                # TODO
+                payment_term_code = oc['NKY_PAG']
+
+                # ---------------------
+                # Update note: CDS_NOTE
+                # ---------------------
+                # TODO not for now!!!!
+                parcels = oc['CDS_NOTE']
+                
+                # ---------------------------
+                # Update note: CKY_CNT_AGENTE
+                # ---------------------------
+                # TODO 
+                mx_agent_code = oc['CKY_CNT_AGENTE']
+                
+                # ---------------------------
+                # Update note: CKY_CNT_VETT
+                # ---------------------------
+                # TODO 
+                carrier_code = oc['CKY_CNT_VETT']
                 
                 # --------------------------
                 # Write record if populated:        
