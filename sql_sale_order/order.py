@@ -241,14 +241,11 @@ class SaleOrderSql(orm.Model):
                     _logger.info('Updated: %s {%s}' % (name, data))
                 else:    
                     _logger.info('Jumped: %s' % name)
-                    
-
             except:
                 _logger.error("Problem with record: %s > %s"%(
                     oc, sys.exc_info()))
         return
 
-        
     # =========================================================================
     #                               SCHEDULED ACTION
     # =========================================================================
