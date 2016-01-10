@@ -117,9 +117,9 @@ class SaleOrderSql(orm.Model):
                     _logger.warning('Not found: %s' % name)
                     continue
 
-                # -----------
-                # Converters:
-                # -----------
+                # -------------------------------------------------------------
+                #                       Converters:
+                # -------------------------------------------------------------
                 # Create a converter for carriage condition:
                 carriage_condition = {}
                 cc_pool = self.pool.get('stock.picking.carriage_condition')
@@ -131,11 +131,19 @@ class SaleOrderSql(orm.Model):
                 # Create a converter for transportation reason:
                 transportation_reason = {}
                 tr_pool = self.pool.get('stock.picking.transportation_reason')
-                tr_ids = cc_pool.search(cr, uid, [], context=context)
+                tr_ids = tr_pool.search(cr, uid, [], context=context)
                 for item in tr_pool.browse(cr, uid, tr_ids, context=context):
                     if item.import_id:
-                        carriage_condition[item.import_id] = item.id
-                    
+                        transportation_reason[item.import_id] = item.id
+                        
+                # Create a converter for payment:
+                payment = {}
+                payment_pool = self.pool.get('account.payment.term')
+                payment_ids = payment_pool.search(cr, uid, [], context=context)
+                for item in payment_pool.browse(cr, uid, payment_ids, context=context):
+                    if item.import_id:
+                        payment[item.import_id] = item.id
+                        
                 # ------------------------------------------------    
                 # Update alternate sped address.: CKY_CNT_SPED_ALT
                 # ------------------------------------------------    
@@ -176,7 +184,6 @@ class SaleOrderSql(orm.Model):
                 # ---------------------------
                 # Update note: NKY_CAUM
                 # ---------------------------
-                # TODO 
                 transportation_reason_code = oc['NKY_CAUM']
                 
                 if transportation_reason_code:
@@ -194,8 +201,19 @@ class SaleOrderSql(orm.Model):
                 # -----------------------
                 # Update payment: NKY_PAG
                 # -----------------------
-                # TODO
                 payment_term_code = oc['NKY_PAG']
+
+                if payment_term_code:
+                    payment_term = payment.get(
+                        payment_term_code, False)
+                    if payment_term:    
+                        data['payment_term'
+                            ] = payment_term
+                        _logger.info('Payment update: %s' % name)
+                    else:
+                        _logger.warning(
+                            'Payment not found: %s' % (
+                                payment_term_code))
 
                 # ---------------------
                 # Update note: CDS_NOTE
