@@ -207,8 +207,11 @@ class SaleOrderSql(orm.Model):
                     payment_term = payment.get(
                         payment_term_code, False)
                     if payment_term:    
-                        data['payment_term'
-                            ] = payment_term
+                        # TODO remove the not used one's: 
+                        data['payment_term' # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                            ] = payment_term                            
+                        data['payment_term_id'
+                            ] = payment_term                            
                         _logger.info('Payment update: %s' % name)
                     else:
                         _logger.warning(
