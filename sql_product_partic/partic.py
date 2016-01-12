@@ -121,14 +121,17 @@ class ResPartnerProductPartic(osv.osv):
                         self.write(cr, uid, partic_ids, {
                             'partner_code': customer_article,
                             }, context=context)    
-                        _logger.info('Update partner: %s' % record)                     
+                        _logger.info('Update partner: %s' % record)
                     else:
                         self.create(cr, uid, {
                             'product_id': product_ids[0],
                             'partner_id': partner_ids[0],
                             'partner_code': customer_article,
                             }, context=context)
-                        _logger.info('Create partner: %s' % record)                     
+                        _logger.info('Create partner: %s' % record)
+                        partner_pool.write(cr, uid, partner_ids[0], {
+                            'use_partic': True,
+                            }, context=context)                     
                 except:
                     _logger.error('Error importing partic [%s]' % (
                         sys.exc_info(), ))
