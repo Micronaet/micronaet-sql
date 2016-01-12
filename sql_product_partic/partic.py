@@ -44,9 +44,9 @@ class micronaet_accounting(osv.osv):
     # ------------
     #  TRANSPORT -
     # ------------
-    def get_transportation(self, cr, uid, year=False, context=None):
-        ''' Access to anagrafic table of transportation
-            Table: MC_CAUS_MOVIMENTI
+    def get_partic_product_partner(self, cr, uid, year=False, context=None):
+        ''' Access to anagrafic table of partic productpartner
+            Table: tz_prz_cli_art
         '''
         table = 'tz_prz_cli_art'
         if self.pool.get('res.company').table_capital_name(cr, uid, 
@@ -55,7 +55,11 @@ class micronaet_accounting(osv.osv):
 
         cursor = self.connect(cr, uid, year=year, context=context)
         try:
-            cursor.execute('''SELECT NKY_CAUM, CDS_CAUM FROM %s;''' % table)
+            cursor.execute('''
+                SELECT 
+                    CKY_ART, CSG_ART_CLI_FOR, CKY_CNT 
+                FROM %s;
+                ''' % table)
             return cursor # with the query setted up                  
         except: 
             return False  # Error return nothing
@@ -74,39 +78,63 @@ class ResPartnerProductPartic(osv.osv):
         try:
             _logger.info('Start import SQL: partner product partic')
             
-            cursor = self.pool.get('micronaet.accounting').get_partic(
-                cr, uid, context=context)
+            cursor = self.pool.get(
+                'micronaet.accounting').get_partic_product_partner(
+                    cr, uid, context=context)
             if not cursor:
                 _logger.error('Unable to connect, no partic!')
                 return True
 
-            _logger.info('Start import partic')
-            i = 0
+            i = 0            
+            product_pool = self.pool.get('product.product')
+            partner_pool = self.pool.get('res.partner')
             for record in cursor:
                 i += 1
-                try: 
-                    import_id = record['NKY_CAUM']
-                    data = {
-                        'import_id': import_id,
-                        'name': record['CDS_CAUM'],
-                        }                    
-                    transportation_ids = self.search(cr, uid, [
-                        ('import_id', '=', import_id)], context=context)
+                try:
+                    item_code = record['CKY_ART']
+                    partner_code = record['CKY_CNT']
+                    customer_article = record['CSG_ART_CLI_FOR']
+                    
+                    product_ids =  product_pool.search(cr, uid, [
+                        ('default_code', '=', item_code)], context=context)
+                    if not product_ids:
+                        _logger.error(
+                            'Product code no found (jump): %s' % item_code)
+                        continue    
 
-                    # Update / Create
-                    if transportation_ids:
-                        transportation_id = transportation_ids[0]
-                        self.write(cr, uid, transportation_id, data, 
-                            context=context)
+                    partner_ids = partner_pool.search(cr, uid, [
+                        '|',
+                        ('sql_customer_code', '=', partner_code),
+                        ('sql_supplier_code', '=', partner_code),
+                        ], context=context)
+                    if not partner_ids:
+                        _logger.error(
+                            'Partner code no found (jump): %s' % partner_code)
+                        continue    
+                         
+                       
+                    partic_ids = self.search(cr, uid, [
+                        ('product_id', '=', product_ids[0]),
+                        ('partner_id', '=', partner_ids[0]),                        
+                        ], context=context)
+                    if partic_ids:
+                        self.write(cr, uid, partic_ids, {
+                            'partner_code': customer_article,
+                            }, context=context)    
+                        _logger.info('Update partner: %s' % record)                     
                     else:
-                        transportation_id = self.create(
-                            cr, uid, data, context=context)
+                        self.create(cr, uid, {
+                            'product_id': product_ids[0],
+                            'partner_id': partner_ids[0],
+                            'partner_code': customer_article,
+                            }, context=context)
+                        _logger.info('Create partner: %s' % record)                     
                 except:
-                    _logger.error('Error importing transportation [%s]' % (
+                    _logger.error('Error importing partic [%s]' % (
                         sys.exc_info(), ))
                                             
         except:
-            _logger.error('Error generic import transportation: %s' % (
+            _logger.error('Error generic import partic: %s' % (
                 sys.exc_info(), ))
             return False
         _logger.info('All transportation is updated!')
