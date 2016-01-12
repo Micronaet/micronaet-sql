@@ -93,7 +93,6 @@ class SaleOrderSql(orm.Model):
             #('accounting_order', '=', True),
             ], context=context)            
         # TODO load all position first for optimize    
-        import pdb; pdb.set_trace()
         for order in self.browse(cr, uid, order_ids, context=context):
             if not order.name.startswith('MX'):
                 continue
