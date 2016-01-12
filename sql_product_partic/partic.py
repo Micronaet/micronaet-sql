@@ -58,7 +58,9 @@ class micronaet_accounting(osv.osv):
             cursor.execute('''
                 SELECT 
                     CKY_ART, CSG_ART_CLI_FOR, CKY_CNT 
-                FROM %s;
+                FROM %s
+                WHERE 
+                    IST_PARTIC = 'A';
                 ''' % table)
             return cursor # with the query setted up                  
         except: 
@@ -121,7 +123,7 @@ class ResPartnerProductPartic(osv.osv):
                         self.write(cr, uid, partic_ids, {
                             'partner_code': customer_article,
                             }, context=context)    
-                        _logger.info('Update partner: %s' % record)
+                        _logger.info('%s. Update partner: %s' % (i, record))
                     else:
                         self.create(cr, uid, {
                             'product_id': product_ids[0],
