@@ -75,6 +75,43 @@ class SaleOrderSql(orm.Model):
         else:
             return False
     
+    def force_line_vat_order(self, cr, uid, ids, context=None):
+        ''' Temp procedure as a button for now!
+        '''
+        _logger.info('Start update extra info OC header')
+        line_pool = self.pool.get('sale.order.line')
+        fiscal_pool = self.pool.get('account.fiscal.position')
+
+        fiscal = {}
+        fiscal_ids = fiscal_pool.search(cr, uid, [], context=context)        
+        for position in fiscal_pool.browse(cr, uid, fiscal_ids, context=context):
+            fiscal[position.id] = {}
+            for vat in position.tax_ids:
+                fiscal[position.id][vat.tax_src_id.id] = vat.tax_dest_id.id
+            
+        order_ids = self.search(cr, uid, [
+            #('accounting_order', '=', True),
+            ], context=context)            
+        # TODO load all position first for optimize    
+        import pdb; pdb.set_trace()
+        for order in self.browse(cr, uid, order_ids, context=context):
+            if not order.name.startswith('MX'):
+                continue
+            # Load VAT translation dict
+            substitute_vat = fiscal.get(
+                order.partner_id.property_account_position.id, {})
+            
+            if not substitute_vat:
+                continue
+                
+            for line in order.order_line:                        
+                tax_id = line.tax_id and line.tax_id[0].id                
+                if tax_id and tax_id in substitute_vat:
+                    line_pool.write(cr, uid, [line.id], {
+                        'tax_id': [(6, 0, (substitute_vat[tax_id], ))]
+                        }, context=context)
+            _logger.info('Update order %s with VAT' % order.name)
+        return True            
     
     def update_extra_data_order(self, cr, uid, ids, context=None):
         ''' Temp procedure as a button for now!

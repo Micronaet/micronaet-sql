@@ -9,6 +9,7 @@
 	    <field name="arch" type="xml">
 	        <field name="name" position="after"> 
 	            <button name="update_extra_data_order" string="Update order header" type="object" />
+	            <button name="force_line_vat_order" string="Update VAT in lineorder header" type="object" />	            
 	        </field>
 	    </field>
 	</record>
