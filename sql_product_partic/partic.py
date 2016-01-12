@@ -120,11 +120,14 @@ class ResPartnerProductPartic(osv.osv):
                         ('partner_id', '=', partner_ids[0]),                        
                         ], context=context)
                     if partic_ids:
+                        if len(partic_ids) > 1:
+                            _logger.info('More than one value: %s' % record)
+                            
                         self.write(cr, uid, partic_ids, {
                             'partner_code': customer_article,
                             }, context=context)    
                         _logger.info('%s. Update partner: %s' % (i, record))
-                    else:
+                    else:                        
                         self.create(cr, uid, {
                             'product_id': product_ids[0],
                             'partner_id': partner_ids[0],
