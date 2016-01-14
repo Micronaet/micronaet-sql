@@ -166,6 +166,7 @@ class ResPartner(orm.Model):
             # Create agent-partner in ODOO:
             # -----------------------------
             # Link agent to product:
+            import pdb; pdb.set_trace()
             cursor = self.pool.get(
                 'micronaet.accounting').get_partner_agent_linked_to_agent(
                     cr, uid, context=context)
@@ -187,12 +188,16 @@ class ResPartner(orm.Model):
                     # Search code to update:
                     partner_ids = partner_proxy.search(cr, uid, [
                         '|',
-                        ('sql_customer_code', '=', agent_code),
-                        ('sql_supplier_code', '=', agent_code),
+                        ('sql_customer_code', '=', partner_code),
+                        ('sql_supplier_code', '=', partner_code),
                         ])
 
-                    if agent_code in agent_list:
-                        agent_id = agent_list.get[agent_code]
+                    if agent_code not in agent_list:
+                        _logger.warning(
+                            'Agent code not found: %s' % agent_code)
+                        continue 
+                            
+                    agent_id = agent_list[agent_code]                            
                     if partner_ids: # update
                         if len(partner_ids) > 1:
                             _logger.warning(
@@ -204,12 +209,12 @@ class ResPartner(orm.Model):
                                 #'sql_agent_code': agent_code,
                                 'agent_id': agent_id, 
                                 }, context=context)
-                        agent_list[agent_code] = partner_ids[0]
-                        _logger.info('Update Agent code: %s' % agent_code)
-
+                        _logger.info('Link partner %s agent %s' % (
+                            partner_code, agent_code))
                     else:
                         _logger.error(
-                            'Agent code not found (jump): %s' % agent_code)
+                            'Partner code not found (jump): %s' % partner_code)
+                        continue    
                 except:
                     _logger.error(
                         'Error importing agent [%s], jumped: %s' % (
