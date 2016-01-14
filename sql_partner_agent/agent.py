@@ -45,32 +45,6 @@ class ResCompany(orm.Model):
         'sql_agent_to_code': fields.char('To agent <', size=3), 
         }
 
-class MicronaetAccounting(orm.Model):
-    ''' Extend micronaet.accounting for agent
-    '''    
-    _inherit = 'micronaet.accounting'
-    
-    def get_partner_agent_from_commercial(self, cr, uid, context=None):
-        ''' Import partner extra commercial info
-            Table: PC_CONDIZIONI_COMM
-        '''
-        table = "pc_condizioni_comm"
-        if self.pool.get('res.company').table_capital_name(
-                cr, uid, context=context):
-            table = table.upper()
-
-        cursor = self.connect(cr, uid, context=context)        
-        try:
-            cursor.execute("""
-                SELECT DISTINCT CKY_CNT_AGENTE 
-                FROM %s WHERE CKY_CNT != null;""" % table)
-            return cursor # with the query setted up                  
-        except: 
-            _logger.error("Executing query %s: [%s]" % (
-                table,
-                sys.exc_info(), ))
-            return False  # Error return nothing
-
 class ResPartner(orm.Model):
     ''' Extend res.partner for agent
     '''    
@@ -92,7 +66,6 @@ class ResPartner(orm.Model):
             Variant of original procedure for import withoun range
         '''
         try:
-            return True # TODO import procedure (maybe not range for agent
             partner_proxy = self.pool.get('res.partner')
             cursor = self.pool.get(
                 'micronaet.accounting').get_partner_agent_from_commercial(
@@ -104,25 +77,32 @@ class ResPartner(orm.Model):
 
             _logger.info('Start import agent (no range)')
             i = 0
+            
+            # Create agent in ODOO:
+            agent_list = {}
             for record in cursor:
                 i += 1
                 if verbose_log_count and i % verbose_log_count == 0:
                     _logger.info('Import: %s record imported / updated!' % i)                    
                 try:
+                    agent_code = record['CKY_CNT_AGENTE']
                     # Search code to update:
                     partner_ids = partner_proxy.search(cr, uid, [
-                        ('sql_agent_code', '=', record['CKY_CNT'])])
+                        ('sql_supplier_code', '=', agent_code)])
+
                     if partner_ids: # update
                         partner_proxy.write(
                             cr, uid, partner_ids, {
                                 'is_agent': True,
-                                'sql_agent_code': record['CKY_CNT_AGENTE'],
+                                #'sql_agent_code': agent_code,
                                 'agent_id': False, 
                                 }, context=context)
+                        agent_list[agent_code] = parent_ids[0]
+                        _logger.info('Update Agent code: %s' % agent_code)
+                                
                     else:
                         _logger.error(
-                            'Agent code not fount (jump): %s' % record[
-                                'CKY_CNT_AGENTE'])
+                            'Agent code not found (jump): %s' % agent_code)
 
                 except:
                     _logger.error(
@@ -130,6 +110,7 @@ class ResPartner(orm.Model):
                             record['CKY_CNT'], 
                             sys.exc_info()))
                             
+            # TODO update partner - agent                 
             _logger.info('All partner agent is updated!')
         except:
             _logger.error('Error generic import partner agent: %s' % (
