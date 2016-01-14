@@ -176,7 +176,6 @@ class ResPartner(orm.Model):
                 return False
 
             i = 0
-            import pdb; pdb.set_trace()
             for record in cursor:
                 i += 1
                 if verbose_log_count and i % verbose_log_count == 0:

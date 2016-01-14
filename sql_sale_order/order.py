@@ -714,7 +714,6 @@ class sale_order_line_extra(osv.osv):
     # Related  field optimization function:
     # -------------------------------------
     # accounting_order:
-    # TODO eliminare!!                
     def _get_accounting_state(self, cr, uid, ids, context=None):
         ''' When change accounting state information in order propagate
             also in order line
@@ -744,7 +743,6 @@ class sale_order_line_extra(osv.osv):
             store={'product.product': (
                 _refresh_manufacture_state, ['internal_manufacture'], 10)}), 
                         
-        # TODO eliminare!!                
         'accounting_order': fields.related(
             'order_id', 'accounting_order', type='boolean', 
             string='Accounting order', store={
