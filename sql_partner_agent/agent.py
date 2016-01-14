@@ -35,12 +35,60 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+class MicronaetAccounting(orm.Model):
+    ''' Extend for add quey used
+    '''    
+    _inherit = 'micronaet.accounting'
+
+    def get_partner_agent_from_commercial(self, cr, uid, context=None):
+        ''' Import partner extra commercial info
+            Table: PC_CONDIZIONI_COMM
+        '''
+        table = "pc_condizioni_comm"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)        
+        try:
+            cursor.execute("""
+                SELECT DISTINCT CKY_CNT_AGENTE 
+                FROM %s WHERE CKY_CNT_AGENTE != '';""" % table)
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False  # Error return nothing
+
+    def get_partner_agent_linked_to_agent(self, cr, uid, context=None):
+        ''' Import partner extra commercial info
+            Table: PC_CONDIZIONI_COMM linked to partner
+        '''
+        table = "pc_condizioni_comm"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)        
+        try:
+            cursor.execute("""
+                SELECT DISTINCT CKY_CNT, CKY_CNT_AGENTE 
+                FROM %s WHERE CKY_CNT_AGENTE != '';""" % table)
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False
+
 class ResCompany(orm.Model):
     ''' Extend res.company for agent
     '''    
     _inherit = 'res.company'
     
     _columns = {
+        # XXX Used?
         'sql_agent_from_code': fields.char('From agent >=', size=3), 
         'sql_agent_to_code': fields.char('To agent <', size=3), 
         }
@@ -66,7 +114,15 @@ class ResPartner(orm.Model):
             Variant of original procedure for import withoun range
         '''
         try:
+            _logger.info('Start import agent (no range)')
+            
+            # Pool used:
             partner_proxy = self.pool.get('res.partner')
+
+            # ---------------------            
+            # Create agent in ODOO:
+            # ---------------------            
+            # MySQL read agent list:
             cursor = self.pool.get(
                 'micronaet.accounting').get_partner_agent_from_commercial(
                     cr, uid, context=None)
@@ -75,11 +131,8 @@ class ResPartner(orm.Model):
                     "Unable to connect, no importation partner agent!")
                 return False
 
-            _logger.info('Start import agent (no range)')
             i = 0
-            
-            # Create agent in ODOO:
-            agent_list = {}
+            agent_list = {} # for speed up operations
             for record in cursor:
                 i += 1
                 if verbose_log_count and i % verbose_log_count == 0:
@@ -95,23 +148,77 @@ class ResPartner(orm.Model):
                             cr, uid, partner_ids, {
                                 'is_agent': True,
                                 #'sql_agent_code': agent_code,
-                                'agent_id': False, 
+                                #'agent_id': False, 
                                 }, context=context)
-                        agent_list[agent_code] = parent_ids[0]
+                        agent_list[agent_code] = partner_ids[0]
                         _logger.info('Update Agent code: %s' % agent_code)
                                 
                     else:
                         _logger.error(
                             'Agent code not found (jump): %s' % agent_code)
-
                 except:
                     _logger.error(
                         'Error importing agent [%s], jumped: %s' % (
-                            record['CKY_CNT'], 
+                            agent_code, 
+                            sys.exc_info()))
+
+            # -----------------------------
+            # Create agent-partner in ODOO:
+            # -----------------------------
+            # Link agent to product:
+            cursor = self.pool.get(
+                'micronaet.accounting').get_partner_agent_linked_to_agent(
+                    cr, uid, context=context)
+            if not cursor:
+                _logger.error(
+                    "Unable to connect, no importation partner link agent!")
+                return False
+
+            i = 0
+            for record in cursor:
+                i += 1
+                if verbose_log_count and i % verbose_log_count == 0:
+                    _logger.info('Import: %s record imported / updated!' % i)                    
+                try:
+                    # Field mapping:
+                    partner_code = record['CKY_CNT']
+                    agent_code = record['CKY_CNT_AGENTE']
+                    
+                    # Search code to update:
+                    partner_ids = partner_proxy.search(cr, uid, [
+                        '|',
+                        ('sql_customer_code', '=', agent_code),
+                        ('sql_supplier_code', '=', agent_code),
+                        ])
+
+                    if agent_code in agent_list:
+                        agent_id = agent_list.get[agent_code]
+                    if partner_ids: # update
+                        if len(partner_ids) > 1:
+                            _logger.warning(
+                                'More than one partner: %s' % partner_code)
+                                
+                        partner_proxy.write(
+                            cr, uid, partner_ids[0], {
+                                #'is_agent': True,
+                                #'sql_agent_code': agent_code,
+                                'agent_id': agent_id, 
+                                }, context=context)
+                        agent_list[agent_code] = partner_ids[0]
+                        _logger.info('Update Agent code: %s' % agent_code)
+
+                    else:
+                        _logger.error(
+                            'Agent code not found (jump): %s' % agent_code)
+                except:
+                    _logger.error(
+                        'Error importing agent [%s], jumped: %s' % (
+                            agent_code, 
                             sys.exc_info()))
                             
             # TODO update partner - agent                 
             _logger.info('All partner agent is updated!')
+
         except:
             _logger.error('Error generic import partner agent: %s' % (
                 sys.exc_info(), ))

@@ -32,10 +32,10 @@
         <field name='type'>form</field>
         <field name='arch' type='xml'>
             <field name="ref" position="after">
-                 <field name="sql_import" invisible="1" />
-                 <field name="sql_customer_code" attrs="{'invisible':[('sql_import','=',False)]}" />
-                 <field name="sql_supplier_code" attrs="{'invisible':[('sql_import','=',False)]}" />
-                 <field name="sql_destination_code" attrs="{'invisible':[('sql_import','=',False)]}" />                 
+                 <field name="sql_import" readonly="1" />
+                 <field name="sql_customer_code" /><!-- attrs="{'invisible':[('sql_import','=',False)]}"-->
+                 <field name="sql_supplier_code" />
+                 <field name="sql_destination_code" />  
             </field>
         </field>
     </record>   
