@@ -2,7 +2,7 @@
 <openerp>
 	<data>
 	<!-- **********************  temp button   *****************************-->
-	<record model="ir.ui.view" id="view_sale_order_import_button_form">
+	<!--<record model="ir.ui.view" id="view_sale_order_import_button_form">
 	    <field name="name">sale.order.form</field>
 	    <field name="model">sale.order</field>
 	    <field name="inherit_id" ref="sale.view_order_form"/>
@@ -12,7 +12,7 @@
 	            <button name="force_line_vat_order" string="Update VAT in lineorder header" type="object" />	            
 	        </field>
 	    </field>
-	</record>
+	</record>-->
 	<!-- **********************  temp button   *****************************-->
 	
 	
