@@ -45,6 +45,32 @@ class ResCompany(orm.Model):
         'sql_agent_to_code': fields.char('To agent <', size=3), 
         }
 
+class MicronaetAccounting(orm.Model):
+    ''' Extend micronaet.accounting for agent
+    '''    
+    _inherit = 'micronaet.accounting'
+    
+    def get_partner_agent_from_commercial(self, cr, uid, context=None):
+        ''' Import partner extra commercial info
+            Table: PC_CONDIZIONI_COMM
+        '''
+        table = "pc_condizioni_comm"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)        
+        try:
+            cursor.execute("""
+                SELECT DISTINCT CKY_CNT_AGENTE 
+                FROM %s WHERE CKY_CNT != null;""" % table)
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False  # Error return nothing
+
 class ResPartner(orm.Model):
     ''' Extend res.partner for agent
     '''    
@@ -59,13 +85,64 @@ class ResPartner(orm.Model):
     
     # -------------------------------------------------------------------------
     #                              Scheduled action
-    # -------------------------------------------------------------------------
+    # -------------------------------------------------------------------------    
+    def schedule_sql_partner_agent_import_norange(self, cr, uid, 
+            only_precence=True, verbose_log_count=100, context=None):
+        ''' Import partner agent info
+            Variant of original procedure for import withoun range
+        '''
+        try:
+            return True # TODO import procedure (maybe not range for agent
+            partner_proxy = self.pool.get('res.partner')
+            cursor = self.pool.get(
+                'micronaet.accounting').get_partner_agent_from_commercial(
+                    cr, uid, context=None)
+            if not cursor:
+                _logger.error(
+                    "Unable to connect, no importation partner agent!")
+                return False
+
+            _logger.info('Start import agent (no range)')
+            i = 0
+            for record in cursor:
+                i += 1
+                if verbose_log_count and i % verbose_log_count == 0:
+                    _logger.info('Import: %s record imported / updated!' % i)                    
+                try:
+                    # Search code to update:
+                    partner_ids = partner_proxy.search(cr, uid, [
+                        ('sql_agent_code', '=', record['CKY_CNT'])])
+                    if partner_ids: # update
+                        partner_proxy.write(
+                            cr, uid, partner_ids, {
+                                'is_agent': True,
+                                'sql_agent_code': record['CKY_CNT_AGENTE'],
+                                'agent_id': False, 
+                                }, context=context)
+                    else:
+                        _logger.error(
+                            'Agent code not fount (jump): %s' % record[
+                                'CKY_CNT_AGENTE'])
+
+                except:
+                    _logger.error(
+                        'Error importing agent [%s], jumped: %s' % (
+                            record['CKY_CNT'], 
+                            sys.exc_info()))
+                            
+            _logger.info('All partner agent is updated!')
+        except:
+            _logger.error('Error generic import partner agent: %s' % (
+                sys.exc_info(), ))
+            return False
+        return True
+
     def schedule_sql_partner_agent_import(self, cr, uid, 
             only_precence=True, verbose_log_count=100, context=None):
         ''' Import partner agent info
         '''
         try:
-            return True # TODO import procedure
+            return True # TODO import procedure (maybe not range for agent
             partner_proxy = self.pool.get('res.partner')
             company_pool = self.pool.get('res.company')
             company_proxy = company_pool.get_from_to_dict(
