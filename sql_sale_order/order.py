@@ -735,13 +735,22 @@ class sale_order_line_extra(osv.osv):
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('product_id', 'in', ids)], context=context)
 
+    def _refresh_manufacture_product_state(self, cr, uid, ids, context=None):
+        ''' When change product id
+        '''        
+        return ids
+
     _columns = {
         'is_manufactured': fields.related(
             'product_id', 'internal_manufacture', type='boolean', 
             string='Is manufactured', 
             help='True if product has manufactured check',
-            store={'product.product': (
-                _refresh_manufacture_state, ['internal_manufacture'], 10)}), 
+            store={
+                'product.product': (
+                    _refresh_manufacture_state, ['internal_manufacture'], 10),
+                'sale.order.line': (
+                    _refresh_manufacture_product_state, ['product_id'], 10),                    
+                }), 
                         
         'accounting_order': fields.related(
             'order_id', 'accounting_order', type='boolean', 
