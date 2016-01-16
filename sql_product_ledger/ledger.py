@@ -241,7 +241,7 @@ class ProductProduct(orm.Model):
                     _logger.info('Product updated: %s [%s]' % (
                         product_code, error, ))
                 else:        
-                    _logger.info('No account for product: %s' % (
+                    _logger.error('No account for product: %s' % (
                         product_code))
                         
             except:
