@@ -33,14 +33,11 @@
         'base',
         'base_mssql',
         'base_mssql_accounting',
-        'product',
-        'account',
+        'sql_product',
         'mx_link_account', # for link field to account!
     ],
     'init_xml': [], 
     'data': [
-        'scheduler.xml',
-        'ledger_views.xml',
         ],
     'demo_xml': [],
     'active': False, 
