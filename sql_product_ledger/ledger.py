@@ -59,11 +59,17 @@ class MicronaetAccounting(orm.Model):
         cursor = self.connect(cr, uid, context=context)        
         try:
             cursor.execute('''
-                SELECT DISTINCT CKY_CNT_CPAR_RIC as CKY_CNT 
-                FROM %s WHERE CKY_CNT_CPAR_RIC != ''
+                SELECT DISTINCT 
+                    CKY_CNT_CPAR_RIC as CKY_CNT
+                FROM 
+                    %s 
+                WHERE CKY_CNT_CPAR_RIC != ''
                 UNION 
-                SELECT DISTINCT CKY_CNT_CPAR_COS as CKY_CNT 
-                FROM %s WHERE CKY_CNT_CPAR_COS != '';
+                SELECT 
+                    DISTINCT CKY_CNT_CPAR_COS as CKY_CNT                     
+                FROM 
+                    %s 
+                WHERE CKY_CNT_CPAR_COS != '';
                 ''' % (table, table))
             return cursor # with the query setted up                  
         except: 
@@ -88,7 +94,7 @@ class MicronaetAccounting(orm.Model):
                     CKY_ART, 
                     CKY_CNT_CPAR_RIC, CKY_CNT_CPAR_COS
                 FROM %s;
-            ''' % table
+            ''' % table)
             return cursor # with the query setted up                  
         except: 
             _logger.error("Executing query %s: [%s]" % (
@@ -111,134 +117,138 @@ class ProductProduct(orm.Model):
         ''' Use same action for import product, before will import that after
             update ledger from account
         '''
-        try:
-            ''' TODO uncomment <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-            super(ProductProduct).schedule_sql_product_import(
-                cr, uid, verbose_log_count=100, 
-                write_date_from=write_date_from, write_date_to=write_date_to, 
-                create_date_from=create_date_from, 
-                create_date_to=create_date_to, multi_lang=multi_lang, 
-                context=context)'''
-            
-            _logger.info('Start update ledger to product')
-            
-            # Pool used:
-            account_proxy = self.pool.get('account.account')            
+        
+        ''' TODO uncomment <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        super(ProductProduct).schedule_sql_product_import(
+            cr, uid, verbose_log_count=100, 
+            write_date_from=write_date_from, write_date_to=write_date_to, 
+            create_date_from=create_date_from, 
+            create_date_to=create_date_to, multi_lang=multi_lang, 
+            context=context)'''
 
-            # -----------------------------------------------------------------
-            #                Check presence for ledger used:
-            # -----------------------------------------------------------------
-            # MySQL read agent list:
-            cursor = self.pool.get(
-                'micronaet.accounting').get_ledger_list(
-                    cr, uid, context=context)
-            if not cursor:
-                _logger.error(
-                    "Unable to connect, no importation ledger-product!")
-                return False
+        _logger.info('Start update ledger to product')
+        
+        # Pool used:
+        account_proxy = self.pool.get('account.account')            
 
-            i = 0
-            account_list = {} # for speed up operations
-            account_error = []            
-            for record in cursor:
-                i += 1
-                try:
-                    account_code = record['CKY_CNT']
-                    
-                    # Search code to update:
-                    account_ids = account_proxy.search(cr, uid, [
-                      ('account_ref', '=', account_code)])
-
-                    if account_ids: # update
-                        account_list[account_code] = account_ids[0]
-                    else:
-                        account_error.append(account_code)
-                except:
-                    _logger.error(
-                        'Error importing account [%s], jumped: %s' % (
-                            account_code, 
-                            sys.exc_info()))
-            
-            # --------------------------------------------------
-            # Error if ledger not present (will not be created!)                
-            # --------------------------------------------------
-            if account_error: 
-                # TODO comunicate!! 
-                _logger.error('Account code not found: %s' % (account_error, ))
-
-            # -----------------------------------------------------------------
-            #                    Create partner-account:
-            # -----------------------------------------------------------------
-            cursor = self.pool.get(
-                'micronaet.accounting').get_product_ledger(
-                    cr, uid, context=context):
-            if not cursor:
-                _logger.error(
-                    'Unable to connect, no importation product-account!')
-                return False
-
-            # Load all product ID from code:
-            product_list = {}
-            product_ids = self.search(cr, uid, [], context=context)
-            for product in self.browse(cr, uid, product_ids, context=context):
-                if not product.default_code:
-                    continue
-                product_list[product.default_code] = product.id
-
-            i = 0
-            for record in cursor:
-                i += 1
-                if verbose_log_count and i % verbose_log_count == 0:
-                    _logger.info('Import: %s record imported / updated!' % i)                    
-                try:
-                    # Field mapping:
-                    product_code = record['CKY_ART']
-                    account_cost = record['CKY_CNT_CPAR_COS']
-                    account_revenue = record['CKY_CNT_CPAR_RIC']
-                    
-                    if product_code not in product_list:
-                        _logger.error(
-                            'Product code not found: %s' % product_code)
-                        continue
-
-                    # ---------------------
-                    # Create data to write:
-                    # ---------------------                    
-                    data = {}
-                    
-                    # Cost:
-                    if account_cost in account_list
-                        data['property_account_expense'] = account_list[
-                            account_cost]
-                    else:
-                        _logger.error(
-                            'No product expense code found: %s' % (
-                                account_code))
-
-                    # Revenue:
-                    if account_revenue in account_list
-                        data['property_account_income'] = account_list[
-                            account_revenue]
-                    else:
-                        _logger.error(
-                            'No product revenue code found: %s' % (
-                                account_revenue))
-
-                    if data:
-                        self.write(cr, uid, product_list[product_code], data, 
-                            context=context)
-                except:
-                    _logger.error(
-                        'Error importing product-account [%s], jumped: %s' % (
-                            product_code, 
-                            sys.exc_info()))
-                            
-            # TODO update partner - agent                 
-            _logger.info('All product account is updated!')
-
-        except:
-            _logger.error('Error generic import product-account: %s' % (
-                sys.exc_info(), ))
+        # -----------------------------------------------------------------
+        #                Check presence for ledger used:
+        # -----------------------------------------------------------------
+        # MySQL read agent list:
+        cursor = self.pool.get(
+            'micronaet.accounting').get_ledger_list(
+                cr, uid, context=context)
+        if not cursor:
+            _logger.error(
+                "Unable to connect, no importation ledger-product!")
             return False
+
+        i = 0
+        account_list = {} # for speed up operations
+        account_error = []            
+        for record in cursor:
+            i += 1
+            try:
+                account_code = record['CKY_CNT']
+                
+                # Search code to update:
+                account_ids = account_proxy.search(cr, uid, [
+                  ('account_ref', '=', account_code)])
+
+                if account_ids: # update
+                    account_list[account_code] = account_ids[0]
+                else:
+                    account_error.append(account_code)
+            except:
+                _logger.error(
+                    'Error importing account [%s], jumped: %s' % (
+                        account_code, 
+                        sys.exc_info()))
+        
+        self.pool.get('res.partner').message_new(
+            cr, uid, {
+                #'from': 1,
+                #'to': 1,
+                'subject': 'Account code not found: %s' % (account_error),                    
+                }, custom_values=None, context=None)
+
+        # --------------------------------------------------
+        # Error if ledger not present (will not be created!)                
+        # --------------------------------------------------
+        if account_error: 
+            # TODO comunicate!! 
+            _logger.error('Account code not found: %s' % (account_error, ))
+
+        # -----------------------------------------------------------------
+        #                    Create partner-account:
+        # -----------------------------------------------------------------
+        cursor = self.pool.get(
+            'micronaet.accounting').get_product_ledger(
+                cr, uid, context=context)
+        if not cursor:
+            _logger.error(
+                'Unable to connect, no importation product-account!')
+            return False
+
+        # Load all product ID from code:
+        product_list = {}
+        product_ids = self.search(cr, uid, [], context=context)
+        for product in self.browse(cr, uid, product_ids, context=context):
+            if not product.default_code:
+                continue
+            product_list[product.default_code] = product.id
+
+        i = 0
+        for record in cursor:
+            i += 1
+            if verbose_log_count and i % verbose_log_count == 0:
+                _logger.info('Import: %s record imported / updated!' % i)                    
+            try:
+                # Field mapping:
+                product_code = record['CKY_ART']
+                account_cost = record['CKY_CNT_CPAR_COS']
+                account_revenue = record['CKY_CNT_CPAR_RIC']
+                
+                if product_code not in product_list:
+                    _logger.error(
+                        'Product code not found: %s' % product_code)
+                    continue
+
+                # ---------------------
+                # Create data to write:
+                # ---------------------                    
+                data = {}
+                error = ''
+                
+                # Cost:
+                if account_cost in account_list:
+                    data['property_account_expense'] = account_list[
+                        account_cost]
+                else:
+                    error += 'No expense: %s' % account_code
+
+                # Revenue:
+                if account_revenue in account_list:
+                    data['property_account_income'] = account_list[
+                        account_revenue]
+                else:
+                    error += 'No revenue: %s' % account_revenue
+
+                # Update product:
+                if data:
+                    self.write(cr, uid, product_list[product_code], data, 
+                        context=context)
+                    _logger.info('Product updated: %s [%s]' % (
+                        product_code, error, ))
+                else:        
+                    _logger.info('No account for product: %s' % (
+                        product_code))
+                        
+            except:
+                _logger.error(
+                    'Error importing product-account [%s], jumped: %s' % (
+                        record, 
+                        sys.exc_info()))
+        _logger.info('All product account is updated!')
         return True
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
