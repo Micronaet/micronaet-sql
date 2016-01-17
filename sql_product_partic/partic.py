@@ -249,6 +249,7 @@ class ResPartnerProductPartic(osv.osv):
                             'use_partic': True,
                             }, context=context)                     
                 except:
+                    import pdb; pdb.set_trace()
                     _logger.error('Error importing price partic [%s]' % (
                         sys.exc_info(), ))
                                             
