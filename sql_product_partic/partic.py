@@ -83,7 +83,7 @@ class micronaet_accounting(osv.osv):
                     CKY_CNT, CKY_ART, CDS_PARTIC_4
                 FROM %s
                 WHERE 
-                    IST_PARTIC = 'P'
+                    IST_PARTIC = 'P' AND CDS_PARTIC_4 != 0
                 ORDER BY DTT_INI_VALID desc;
                 ''' % table)
             return cursor # with the query setted up                  
