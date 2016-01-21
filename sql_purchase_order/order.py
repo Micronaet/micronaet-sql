@@ -42,17 +42,17 @@ from utility import *
 _logger = logging.getLogger(__name__)
 
 class PurchaseOrderSql(orm.Model):
-    """Update basic object for import accounting elements
+    '''Update basic object for import accounting elements
        NOTE: in this procedure there's some fields that are created
-             from another module, TODO correct for keep module "modular"
-    """
+             from another module, TODO correct for keep module 'modular'
+    '''
     _inherit = 'micronaet.accounting'
     
     # get_of_lines:
     def get_oc_header(self, cr, uid, context=None):
         ''' Return OF_TESTATE
         '''
-        table = "of_testate"
+        table = 'of_testate'
         if self.pool.get('res.company').table_capital_name(
                 cr, uid, context=context):
             table = table.upper()
@@ -63,7 +63,7 @@ class PurchaseOrderSql(orm.Model):
             cursor.execute('''SELECT * FROM %s;''' % table)
             return cursor
         except: 
-            _logger.error("Executing query %s: [%s]" % (
+            _logger.error('Executing query %s: [%s]' % (
                 table,
                 sys.exc_info(), ))
             return False
@@ -76,7 +76,7 @@ class PurchaseOrderSql(orm.Model):
             with_desc: load also description line
             context: context for parameters
         '''
-        table = "of_righe"
+        table = 'of_righe'
         if self.pool.get('res.company').table_capital_name(
                 cr, uid, context=context):
             table = table.upper()
@@ -84,23 +84,23 @@ class PurchaseOrderSql(orm.Model):
         cursor = self.connect(cr, uid, context=context)
         where = ''
         if not with_desc:
-            where = " WHERE IST_RIGA != 'D'"
+            where = ' WHERE IST_RIGA != 'D''
 
         try:
             cursor.execute('''
                 SELECT * FROM %s%s;''' % (table, where))
             return cursor # with the query setted up                  
         except: 
-            _logger.error("Executing query %s: [%s]" % (
+            _logger.error('Executing query %s: [%s]' % (
                 table,
                 sys.exc_info(), ))
             return False
 
 class PurchaseOrderSql(orm.Model):
-    """Update basic object for import accounting elements
+    '''Update basic object for import accounting elements
        NOTE: in this procedure there's some fields that are created
-             from another module, TODO correct for keep module "modular"
-    """
+             from another module, TODO correct for keep module 'modular'
+    '''
     _inherit = 'purchase.order'
 
     # -----------------
@@ -133,11 +133,11 @@ class PurchaseOrderSql(orm.Model):
                 payment[item.import_id] = item.id
         return        
     
-    def get_oc_key(self, record):
-        """ Compose and return key for OC
-        """
-        return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
-            record['NGL_DOC'])
+    #def get_oc_key(self, record):
+    #    ''' Compose and return key for OC
+    #    '''
+    #    return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
+    #        record['NGL_DOC'])
 
     def get_uom(self, cr, uid, name, context=None):
         uom_id = self.pool.get('product.uom').search(cr, uid, [
@@ -147,12 +147,11 @@ class PurchaseOrderSql(orm.Model):
         else:
             return False
 
-    # -------------
-    # Button event:
-    # -------------
-    # NOTE: for my purpose (fast) we use a button for one shot importation:
-    def load_purchase_order(self, cr, uid, ids, context=None):
-        '''
+    # -------------------------------------------------------------------------
+    #                           Button event:
+    # -------------------------------------------------------------------------
+    def schedule_etl_purchase_order(self, cr, uid, context=None):
+        ''' Button event for import all order (purchase)
         '''
         _logger.info('Start update extra info OC header')
         query_pool = self.pool.get('micronaet.accounting')
@@ -160,7 +159,7 @@ class PurchaseOrderSql(orm.Model):
 
         cr_of= query_pool.get_of_header(cr, uid, context=context)
         if not cr_of:
-            _logger.error('Cannot connect to MSSQL OF_RIGHE')
+            _logger.error('Cannot connect to MSSQL OF_TESTATE')
             return
 
         # -----------
@@ -173,83 +172,40 @@ class PurchaseOrderSql(orm.Model):
         self.load_converter(cr, uid, ids, carriage_condition, 
             transportation_reason, payment, context=context
             
+        # ---------------------------------------------------------------------
+        #                           HEADER:
+        # ---------------------------------------------------------------------
         for of in cr_of:
             try:
-                # ------------------------------
-                # Find order in ODOO from MySQL:
-                # ------------------------------
-                data = {}
-                name = 'MX-%s/%s' % (
-                    of['NGL_DOC'],
-                    of['DTT_DOC'].strftime("%Y"),
-                    )
-                if name in orders:
-                    order_id = orders[name]    
+                # -------------------------------------------------------------
+                #                          Get data: 
+                # -------------------------------------------------------------                
+                # Partner:
+                partner_code = of['CKY_CNT_CLFR']
+                partner_ids = partner_pool.search(cr, uid, [
+                    ('sql_supplier_code', '=', partner_code),
+                    ], context=context)
+                if not partner_ids:    
+                    _logger.error(
+                        'No partner found, code: %s' % partner_code)
+                    continue
+ 
+                # Destination:
+                dest_code = of['CKY_CNT_SPED_ALT']
+                dest_ids = partner_pool.search(cr, uid, ['|',
+                    ('sql_supplier_code', '=', dest_code),
+                    ('sql_destination_code', '=', dest_code),
+                    ], context=context)
+                if dest_ids:    
+                    dest_id = dest_ids[0]
                 else:    
-                    oc_ids = self.search(cr, uid, [
-                        ('name', '=', name),
-                        #('accounting_order', '=', True), # No more used!
-                        ], context=context)
-                    
-                    header = {
-                        'name': name,
-                        'date_order': of['DTT_DOC'].strftime("%Y"),
-                                                
-                        }
-                        
-                    if oc_ids:
-                        _logger.info('Update header: %s' % name)
-                        order_id = of_ids[0]
-                        self.write(cr, uid, order_id, data, context=context)
-                    else:
-                        _logger.info('Create header: %s' % name)
-                        order_id = self.create(cr, uid, ids, data, 
-                            context=context)
-                        orders[name] = order_id
+                    _logger.error(
+                        'No destination found, code: %s' % dest_code)
+                    dest_id = False        
+                    #continue
 
-                        
-                # ------------------------------------------------    
-                # Update alternate sped address.: CKY_CNT_SPED_ALT
-                # ------------------------------------------------    
-                destination_partner_code = oc['CKY_CNT_SPED_ALT']
-                if destination_partner_code:
-                    partner_ids = partner_pool.search(cr, uid, [
-                        ('sql_destination_code', '=', destination_partner_code)
-                        ], context=context)
-                    if partner_ids:
-                        data['destination_partner_id'] = partner_ids[0]
-                    else:
-                        _logger.warning('Destination code not found: %s' % (
-                            destination_partner_code))
-
-                # -----------------------------
-                # Update parcels: NGB_TOT_COLLI
-                # -----------------------------
-                parcels = oc['NGB_TOT_COLLI']
-                if parcels:
-                    data['parcels'] = parcels
-                    _logger.info('Update parcels: %s' % name)
-                
-                # -----------------------
-                # Update porto: IST_PORTO
-                # -----------------------
-                carriage_condition_code = oc['IST_PORTO']
-                
-                if carriage_condition_code:
-                    carriage_condition_id = carriage_condition.get(
-                        carriage_condition_code, False)
-                    if carriage_condition_id:    
-                        data['carriage_condition_id'] = carriage_condition_id
-                        _logger.info('Carriage condition update: %s' % name)
-                    else:
-                        _logger.warning('Carriage condition not found: %s' % (
-                            carriage_condition_code))
-
-                # ---------------------------
-                # Update note: NKY_CAUM
-                # ---------------------------
-                transportation_reason_code = oc['NKY_CAUM']
-                
+                # Update transport readon: NKY_CAUM
+                transportation_reason_code = of['NKY_CAUM']                
                 if transportation_reason_code:
                     transportation_reason_id = transportation_reason.get(
                         transportation_reason_code, False)
@@ -261,259 +217,96 @@ class PurchaseOrderSql(orm.Model):
                         _logger.warning(
                             'Tranportation reason not found: %s' % (
                                 transportation_reason_code))
-                
-                # -----------------------
-                # Update payment: NKY_PAG
-                # -----------------------
-                payment_term_code = oc['NKY_PAG']
-
-                if payment_term_code:
-                    payment_term = payment.get(
-                        payment_term_code, False)
-                    if payment_term:    
-                        # TODO remove the not used one's: 
-                        data['payment_term' # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                            ] = payment_term                            
-                        data['payment_term_id'
-                            ] = payment_term                            
-                        _logger.info('Payment update: %s' % name)
-                    else:
-                        _logger.warning(
-                            'Payment not found: %s' % (
-                                payment_term_code))
-
-                # ---------------------
-                # Update note: CDS_NOTE
-                # ---------------------
-                # TODO not for now!!!!
-                parcels = oc['CDS_NOTE']
-                
-                # ---------------------------
-                # Update note: CKY_CNT_AGENTE
-                # ---------------------------
-                # TODO 
-                mx_agent_code = oc['CKY_CNT_AGENTE']
-                
-                # ---------------------------
-                # Update note: CKY_CNT_VETT
-                # ---------------------------
-                # TODO 
-                carrier_code = oc['CKY_CNT_VETT']
-                
-                # --------------------------
-                # Write record if populated:        
-                # --------------------------
-                if data:
-                    self.write(cr, uid, oc_ids[0], data, context=context)
-                    _logger.info('Updated: %s {%s}' % (name, data))
-                else:    
-                    _logger.info('Jumped: %s' % name)
-            except:
-                _logger.error("Problem with record: %s > %s"%(
-                    oc, sys.exc_info()))
-        return
-
-    # =========================================================================
-    #                               SCHEDULED ACTION
-    # =========================================================================
-    def schedule_etl_purchase_order(self, cr, uid, update=False, delete=False,
-             extra_info=True, context=None):
-        """ Import OC and create purchase.order
-            self: instance
-            cr: database cursor
-            uid: user ID
-            update: if False create only new record, True try a sync wiht key
-            delete: if True delete order no more present
-            extra_info: update only extra info # TODO not used for now!
-        """
-        _logger.info('Start import OC header mode: "%s"' % (
-            'update' if update else 'new only'))
-            
-        query_pool = self.pool.get('micronaet.accounting')
-        empty_date = query_pool.get_empty_date()
-        log_info = ''
-
-        # --------
-        # Utility:
-        # --------
-        def get_oc_key(record):
-            """ Compose and return key for OC
-            """
-            return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
-                record['NGL_DOC'])
-
-        # ---------------------------------------------------------------------
-        #                               IMPORT HEADER
-        # ---------------------------------------------------------------------
-        # Operation for manage deletion:
-        if delete:
-            order_ids = self.search(cr, uid, [
-                ('accounting_order', '=', True),
-                ('accounting_state', 'not in', ('close')), # TODO used??
-                ], context=context)
-        if update:        
-            updated_ids = []
-        new_ids = [] # for force related
-        # Start importation from SQL (NOTE: no comment!!):
-        cr_oc = query_pool.get_oc_header(cr, uid, context=context)
-        if not cr_oc:
-            _logger.error('Cannot connect to MSSQL OC_TESTATE')
-            return
-
-        # Converter 
-        oc_header = {} # (ref, type, number): ODOO ID
-        order_partner = {}
-        for oc in cr_oc:
-            try:
-                name = "MX-%s/%s" % (
-                    oc['NGL_DOC'],
-                    oc['DTT_DOC'].strftime("%Y"),
-                    )
-                oc_ids = self.search(cr, uid, [
-                    ('name', '=', name),
-                    ('accounting_order', '=', True)
-                    ], context=context)
-                    
-                # Initialize var that could not be populated:    
-                oc_id = False
-                partner_id = False
-                destination_partner_id = False
-                if update and oc_ids:
-                    # --------------------
-                    # Update header order:
-                    # --------------------
-                    oc_id = oc_ids[0]
-                    if oc_id not in updated_ids:
-                        updated_ids.append(oc_id)
-
-                    oc_proxy = self.browse(cr, uid, oc_id, context=context)
-
-                    # TODO:
-                    header = {}
-                    if header: # TODO not working for now, is necessary?
-                        update = self.write(
-                            cr, uid, oc_id, header, context=context)
-
-                    try: # Note: the lines are removed when remove the header
-                        if delete:
-                            order_ids.remove(oc_id)
-                    except:
-                        pass # no error
-                elif not oc_ids: # always do
-                    # --------------------
-                    # Create header order:
-                    # --------------------
-                    # Partner controls:
-                    partner_proxy = browse_partner_ref(
-                        self, cr, uid, oc['CKY_CNT_CLFR'], context=context)
-                    if not partner_proxy or not partner_proxy.id:
-                        try:
-                            _logger.error(
-                                "No partner found, created minimal: %s" % (
-                                    oc['CKY_CNT_CLFR']))
-                            partner_id = self.pool.get(
-                                'res.partner').create(cr, uid, {
-                                    'name': _("Customer %s") % (
-                                        oc['CKY_CNT_CLFR']),
-                                    'active': True,
-                                    'is_company': True,
-                                    'parent_id': False,
-                                    'sql_customer_code': oc[
-                                        'CKY_CNT_CLFR'],
-                                    }, context=context)
-                        except:
-                             # Jump this OC due to partner error:
-                             _logger.error(
-                                 'Minimal partner creation, jumped: %s >%s' % (
-                                     oc['CKY_CNT_CLFR'],
-                                     sys.exc_info()))
-                             continue
-                    else:
-                        partner_id = partner_proxy.id
-                        
-
-                    oc_id = self.create(cr, uid, {
-                        'name': name,
-                        'accounting_order': True,
-                        'origin': False,
-                        'date_order': oc['DTT_DOC'].strftime("%Y-%m-%d"),
-                        'partner_id': partner_id,
-                        'destination_partner_id': destination_partner_id,
-                        
-                        'user_id': uid,
-                        'note': oc['CDS_NOTE'].strip(), # Terms and conditions
-                        'pricelist_id':
-                            partner_proxy.property_product_pricelist.id if
-                                partner_proxy else 1,  # TODO put default!
                                 
-                        # TODO check if are correct:
-                        'picking_policy': 'direct',
-                        'order_policy': 'manual',
-                        #'invoice_quantity': 'order', # order procurement
-                        #'partner_invoice_id': partner_id,
-                        #'partner_shipping_id': partner_id, # TODO if present?
-                        }, context=context)
+                # Update payment
+                payment_term_code = oc['NKY_PAG']
+                payment_term_id = False
+                if payment_term_code:
+                    payment_term_id = payment.get(
+                        payment_term_code, False)
 
-                # Save reference for lines (deadline purpose):
-                
-                if oc_id: # update or created
-                    order_partner[oc_id] = partner_id
-                    new_ids.append(oc_id)
-                    oc_key = get_oc_key(oc)
-                    if (oc_key) not in oc_header:
-                        # (ID, Deadline) # No deadline in header take first line
-                        oc_header[oc_key] = [oc_id, False]
-            except:
-                _logger.error("Problem with record: %s > %s"%(
-                    oc, sys.exc_info()))
+                # Update porto:
+                #carriage_condition_code = oc['IST_PORTO']                
+                #if carriage_condition_code:
+                #    carriage_condition_id = carriage_condition.get(
+                #        carriage_condition_code, False)
+                #    if carriage_condition_id:    
+                #        data['carriage_condition_id'] = carriage_condition_id
+                #        _logger.info('Carriage condition update: %s' % name)
+                #    else:
+                #        _logger.warning('Carriage condition not found: %s' % (
+                #            carriage_condition_code))
 
-        # Mark as closed order not present in accounting:
-        # Rule: order before - order update = order to delete
-        if delete and order_ids:
-            try:
-                self.write(cr, uid, order_ids, {
-                    'accounting_state': 'close'}, context=context)
-            except:
-                _logger.error("Error closing order ids: %s" % order_ids)
+                # Update note:
+                # TODO 
+                #carrier_code = oc['CKY_CNT_VETT']
 
-        # ---------------------------------------------------------------------
-        #                               IMPORT LINE
-        # ---------------------------------------------------------------------
-        _logger.info('Start import OC lines')
-        line_pool = self.pool.get('sale.order.line')
-        DB_line = {}
-        if update:
-            order_line_ids = line_pool.search(cr, uid, [
-                ('order_id', 'in', updated_ids)], context=context)
-            # TODO lines for order deleted?    
+                # Parcels:
+                #parcels = oc['NGB_TOT_COLLI']
+                #if parcels:
+                #    data['parcels'] = parcels
+                #    _logger.info('Update parcels: %s' % name)
 
-            # Load all OC line in openerp DB in dict
-            for ol in line_pool.browse(cr, uid, order_line_ids, 
-                    context=context):
-                key = (ol.order_id.id, ol.product_id.id, ol.date_deadline)
-                if key in DB_line:
-                    pass # TODO raise error?
-                    # TODO test if present b or not b else error!
+                # Key field:
+                name = 'MX-%s/%s' % (
+                    of['NGL_DOC'], of['DTT_DOC'].strftime('%Y'))
+
+                of_ids = self.search(cr, uid, [
+                    ('name', '=', name),
+                    #('accounting_order', '=', True), # No more used!
+                    ], context=context)
+
+                header = {
+                    'name': name,
+                    'partner_id': partner_ids[0],
+                    'destination_partner_id': dest_id,
                     
-                # TODO test if is present: ol.product_uom_maked_qty  
-                DB_line[key] = [
-                    ol.id,               # ID
-                    False,               # finded
-                    ol.product_uom_qty,  # q. total
-                    0.0,                 # counter: product_uom_maked_sync_qty,
-                    ol.sync_state,       # syncro state
-                    ]
+                    'date_order': of['DTT_DOC'][:10],
+                    'payment_term_id': payment_term_id,
+                    'transportation_reason_id': transportation_reason_id,
+                    'notes': of['CDS_NOTE']
+                    #'goods_description_id':
+                    #'transportation_method':                    
+                    #'carriage_condition_id':
+                    #'partner_ref': 
+                    #'currency_id'
+                    #'used_bank_id'
+                    #'fiscal_position'
+                    #'payment_note':
+                    #'delivery_note':
+                    #'note'TODO???
+                    #'incoterm_id'
+                    #'minimum_planned_date'
+                    }                    
+                    
+                if of_ids:
+                    _logger.info('Update header: %s' % name)
+                    order_id = of_ids[0]
+                    self.write(cr, uid, order_id, data, context=context)
+                else:
+                    _logger.info('Create header: %s' % name)
+                    order_id = self.create(cr, uid, ids, data, 
+                        context=context)
+                        
+                # Save for line:
+                orders[name] = order_id
 
-        # -------------------------
-        # Read database order line:
-        # -------------------------
-        cr_oc_line = query_pool.get_oc_line(cr, uid, context=context)
+            except:
+                _logger.error('Problem with record: %s > %s'%(
+                    of, sys.exc_info()))
+
+        # ---------------------------------------------------------------------
+        #                           LINE:
+        # ---------------------------------------------------------------------
+        _logger.info('Start import OF lines')
+        line_pool = self.pool.get('sale.order.line')
+        cr_of_line = query_pool.get_of_line(cr, uid, context=context)
         if not cr_oc_line:
-            _logger.error('Cannot connect to MSSQL OC_RIGHE')
+            _logger.error('Cannot connect to MSSQL OF_RIGHE')
             return
 
         i = 0
-        for oc_line in cr_oc_line:
+        '''for oc_line in cr_oc_line:
             try:
                 i += 1
                 if i % 100 == 0:
@@ -540,7 +333,7 @@ class PurchaseOrderSql(orm.Model):
 
                 order_id = oc_header[oc_key][0]
                 date_deadline = oc_line['DTT_SCAD'].strftime(
-                    "%Y-%m-%d") if oc_line[
+                    '%Y-%m-%d') if oc_line[
                         'DTT_SCAD'] and oc_line[
                             'DTT_SCAD'] != empty_date else False
 
@@ -651,7 +444,7 @@ class PurchaseOrderSql(orm.Model):
       
                         if not element[1]: # error or B created first
                             #if abs(element[4] - quantity) < 1.0: 
-                            #data_update["accounting_state"] = "new" #TODO need
+                            #data_update['accounting_state'] = 'new' #TODO need
                             element[1] = True # set line as assigned!
 
                             # Modify record:
@@ -683,9 +476,9 @@ class PurchaseOrderSql(orm.Model):
                     # data_update.get('sync_state', False), # TODO change?
             except:
                 _logger.error('Problem with oc line record: %s\n%s' % (
-                    oc_line, sys.exc_info()))
+                    oc_line, sys.exc_info()))'''
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!        
-        _logger.info('End importation OC header and line!')
+        _logger.info('End importation OF header and line!')
         return
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
