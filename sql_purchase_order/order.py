@@ -49,7 +49,7 @@ class PurchaseOrderSql(orm.Model):
     _inherit = 'micronaet.accounting'
     
     # get_of_lines:
-    def get_oc_header(self, cr, uid, context=None):
+    def get_of_header(self, cr, uid, context=None):
         ''' Return OF_TESTATE
         '''
         table = 'of_testate'
@@ -68,7 +68,7 @@ class PurchaseOrderSql(orm.Model):
                 sys.exc_info(), ))
             return False
 
-    def get_oc_line(self, cr, uid, with_desc=False, context=None):
+    def get_of_line(self, cr, uid, with_desc=False, context=None):
         ''' Return quantity element for product
             Table: OF_RIGHE
             cr: database cursor
@@ -84,7 +84,7 @@ class PurchaseOrderSql(orm.Model):
         cursor = self.connect(cr, uid, context=context)
         where = ''
         if not with_desc:
-            where = ' WHERE IST_RIGA != 'D''
+            where = ' WHERE IST_RIGA != \'D\''
 
         try:
             cursor.execute('''
@@ -106,7 +106,7 @@ class PurchaseOrderSql(orm.Model):
     # -----------------
     # Utility function:
     # -----------------
-    def load_converter(self, cr, uid, ids, carriage_condition, transportation_reason, 
+    def load_converter(self, cr, uid, carriage_condition, transportation_reason, 
             payment, context=None):
         ''' Load useful converters
         '''    
@@ -153,11 +153,12 @@ class PurchaseOrderSql(orm.Model):
     def schedule_etl_purchase_order(self, cr, uid, context=None):
         ''' Button event for import all order (purchase)
         '''
-        _logger.info('Start update extra info OC header')
+        _logger.info('Start update extra info OF header')
         query_pool = self.pool.get('micronaet.accounting')
         partner_pool = self.pool.get('res.partner')
+        location_pool = self.pool.get('stock.location')
 
-        cr_of= query_pool.get_of_header(cr, uid, context=context)
+        cr_of = query_pool.get_of_header(cr, uid, context=context)
         if not cr_of:
             _logger.error('Cannot connect to MSSQL OF_TESTATE')
             return
@@ -169,9 +170,17 @@ class PurchaseOrderSql(orm.Model):
         carriage_condition = {}
         transportation_reason = {}
         payment = {}
-        self.load_converter(cr, uid, ids, carriage_condition, 
-            transportation_reason, payment, context=context
+        self.load_converter(cr, uid, carriage_condition, 
+            transportation_reason, payment, context=context)
             
+        location_ids = location_pool.search(cr, uid, [
+            ('name', '=', 'Stock')], context=context)            
+        if not location_ids:
+            _logger.error('Cannot found location: WH/Stock')
+            return    
+        
+        pricelist_id = 2 # TODO     
+    
         # ---------------------------------------------------------------------
         #                           HEADER:
         # ---------------------------------------------------------------------
@@ -192,41 +201,39 @@ class PurchaseOrderSql(orm.Model):
  
                 # Destination:
                 dest_code = of['CKY_CNT_SPED_ALT']
-                dest_ids = partner_pool.search(cr, uid, ['|',
-                    ('sql_supplier_code', '=', dest_code),
-                    ('sql_destination_code', '=', dest_code),
-                    ], context=context)
-                if dest_ids:    
-                    dest_id = dest_ids[0]
-                else:    
-                    _logger.error(
-                        'No destination found, code: %s' % dest_code)
-                    dest_id = False        
-                    #continue
+                dest_id = False        
+                if dest_code:
+                    dest_ids = partner_pool.search(cr, uid, ['|',
+                        ('sql_supplier_code', '=', dest_code),
+                        ('sql_destination_code', '=', dest_code),
+                        ], context=context)
+                    if dest_ids:    
+                        dest_id = dest_ids[0]
+                    else:
+                        _logger.error('Destination not found: %s' % dest_code)    
 
                 # Update transport readon: NKY_CAUM
                 transportation_reason_code = of['NKY_CAUM']                
+                transportation_reason_id = False
                 if transportation_reason_code:
                     transportation_reason_id = transportation_reason.get(
                         transportation_reason_code, False)
-                    if transportation_reason_id:    
-                        data['transportation_reason_id'
-                            ] = transportation_reason_id
-                        _logger.info('Tranportation reason update: %s' % name)
-                    else:
-                        _logger.warning(
-                            'Tranportation reason not found: %s' % (
-                                transportation_reason_code))
+                    if not transportation_reason_id:
+                        _logger.error('Tranportation reason not found: %s' % (
+                            transportation_reason_code))   
                                 
                 # Update payment
-                payment_term_code = oc['NKY_PAG']
+                payment_term_code = of['NKY_PAG']
                 payment_term_id = False
                 if payment_term_code:
                     payment_term_id = payment.get(
                         payment_term_code, False)
+                    if not payment_term_id:
+                        _logger.error('Payment code not found: %s' % (
+                            payment_term_code))   
 
                 # Update porto:
-                #carriage_condition_code = oc['IST_PORTO']                
+                #carriage_condition_code = of['IST_PORTO']                
                 #if carriage_condition_code:
                 #    carriage_condition_id = carriage_condition.get(
                 #        carriage_condition_code, False)
@@ -239,10 +246,10 @@ class PurchaseOrderSql(orm.Model):
 
                 # Update note:
                 # TODO 
-                #carrier_code = oc['CKY_CNT_VETT']
+                #carrier_code = of['CKY_CNT_VETT']
 
                 # Parcels:
-                #parcels = oc['NGB_TOT_COLLI']
+                #parcels = of['NGB_TOT_COLLI']
                 #if parcels:
                 #    data['parcels'] = parcels
                 #    _logger.info('Update parcels: %s' % name)
@@ -261,10 +268,13 @@ class PurchaseOrderSql(orm.Model):
                     'partner_id': partner_ids[0],
                     'destination_partner_id': dest_id,
                     
-                    'date_order': of['DTT_DOC'][:10],
+                    'date_order': of['DTT_DOC'].strftime(
+                        DEFAULT_SERVER_DATE_FORMAT),
                     'payment_term_id': payment_term_id,
                     'transportation_reason_id': transportation_reason_id,
-                    'notes': of['CDS_NOTE']
+                    'notes': of['CDS_NOTE'],
+                    'location_id': location_ids[0],
+                    'pricelist_id': pricelist_id, 
                     #'goods_description_id':
                     #'transportation_method':                    
                     #'carriage_condition_id':
@@ -282,10 +292,10 @@ class PurchaseOrderSql(orm.Model):
                 if of_ids:
                     _logger.info('Update header: %s' % name)
                     order_id = of_ids[0]
-                    self.write(cr, uid, order_id, data, context=context)
+                    self.write(cr, uid, order_id, header, context=context)
                 else:
                     _logger.info('Create header: %s' % name)
-                    order_id = self.create(cr, uid, ids, data, 
+                    order_id = self.create(cr, uid, header, 
                         context=context)
                         
                 # Save for line:
@@ -301,19 +311,19 @@ class PurchaseOrderSql(orm.Model):
         _logger.info('Start import OF lines')
         line_pool = self.pool.get('sale.order.line')
         cr_of_line = query_pool.get_of_line(cr, uid, context=context)
-        if not cr_oc_line:
+        if not cr_of_line:
             _logger.error('Cannot connect to MSSQL OF_RIGHE')
             return
 
         i = 0
-        '''for oc_line in cr_oc_line:
+        '''for of_line in cr_of_line:
             try:
                 i += 1
                 if i % 100 == 0:
                     _logger.info('Sync %s lines' % i)
                     
-                oc_key = get_oc_key(oc_line)
-                if oc_key not in oc_header:
+                of_key = get_of_key(of_line)
+                if of_key not in of_header:
                     _logger.warning(
                         'Header order not found (old order?): OC-%s' % (
                             oc_key[2]))
