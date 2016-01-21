@@ -46,11 +46,99 @@ class PurchaseOrderSql(orm.Model):
        NOTE: in this procedure there's some fields that are created
              from another module, TODO correct for keep module "modular"
     """
+    _inherit = 'micronaet.accounting'
+    
+    # get_of_lines:
+    def get_oc_header(self, cr, uid, context=None):
+        ''' Return OF_TESTATE
+        '''
+        table = "of_testate"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)
+
+        try:
+            cursor.execute('''SELECT * FROM %s;''' % table)
+            return cursor
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False
+
+    def get_oc_line(self, cr, uid, with_desc=False, context=None):
+        ''' Return quantity element for product
+            Table: OF_RIGHE
+            cr: database cursor
+            uid: user ID
+            with_desc: load also description line
+            context: context for parameters
+        '''
+        table = "of_righe"
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)
+        where = ''
+        if not with_desc:
+            where = " WHERE IST_RIGA != 'D'"
+
+        try:
+            cursor.execute('''
+                SELECT * FROM %s%s;''' % (table, where))
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False
+
+class PurchaseOrderSql(orm.Model):
+    """Update basic object for import accounting elements
+       NOTE: in this procedure there's some fields that are created
+             from another module, TODO correct for keep module "modular"
+    """
     _inherit = 'purchase.order'
 
     # -----------------
     # Utility function:
     # -----------------
+    def load_converter(self, cr, uid, ids, carriage_condition, transportation_reason, 
+            payment, context=None):
+        ''' Load useful converters
+        '''    
+        
+        # Create a converter for carriage condition:
+        cc_pool = self.pool.get('stock.picking.carriage_condition')
+        cc_ids = cc_pool.search(cr, uid, [], context=context)
+        for item in cc_pool.browse(cr, uid, cc_ids, context=context):
+            if item.account_code:
+                carriage_condition[item.account_code] = item.id
+
+        # Create a converter for transportation reason:
+        tr_pool = self.pool.get('stock.picking.transportation_reason')
+        tr_ids = tr_pool.search(cr, uid, [], context=context)
+        for item in tr_pool.browse(cr, uid, tr_ids, context=context):
+            if item.import_id:
+                transportation_reason[item.import_id] = item.id
+                
+        # Create a converter for payment:
+        payment_pool = self.pool.get('account.payment.term')
+        payment_ids = payment_pool.search(cr, uid, [], context=context)
+        for item in payment_pool.browse(cr, uid, payment_ids, context=context):
+            if item.import_id:
+                payment[item.import_id] = item.id
+        return        
+    
+    def get_oc_key(self, record):
+        """ Compose and return key for OC
+        """
+        return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
+            record['NGL_DOC'])
+
     def get_uom(self, cr, uid, name, context=None):
         uom_id = self.pool.get('product.uom').search(cr, uid, [
             ('name', '=', name), ])
@@ -58,74 +146,67 @@ class PurchaseOrderSql(orm.Model):
             return uom_id[0] # take the first
         else:
             return False
-    
-    def update_extra_data_order(self, cr, uid, ids, context=None):
-        ''' Temp procedure as a button for now!
+
+    # -------------
+    # Button event:
+    # -------------
+    # NOTE: for my purpose (fast) we use a button for one shot importation:
+    def load_purchase_order(self, cr, uid, ids, context=None):
+        '''
         '''
         _logger.info('Start update extra info OC header')
-            
         query_pool = self.pool.get('micronaet.accounting')
         partner_pool = self.pool.get('res.partner')
 
-        # --------
-        # Utility:
-        # --------
-        def get_oc_key(record):
-            """ Compose and return key for OC
-            """
-            return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
-                record['NGL_DOC'])
-
-        cr_oc = query_pool.get_oc_header(cr, uid, context=context)
-        if not cr_oc:
-            _logger.error('Cannot connect to MSSQL OC_TESTATE')
+        cr_of= query_pool.get_of_header(cr, uid, context=context)
+        if not cr_of:
+            _logger.error('Cannot connect to MSSQL OF_RIGHE')
             return
 
-        for oc in cr_oc:
+        # -----------
+        # Converters:
+        # -----------
+        orders = {}
+        carriage_condition = {}
+        transportation_reason = {}
+        payment = {}
+        self.load_converter(cr, uid, ids, carriage_condition, 
+            transportation_reason, payment, context=context
+            
+        for of in cr_of:
             try:
                 # ------------------------------
                 # Find order in ODOO from MySQL:
                 # ------------------------------
                 data = {}
-                name = "MX-%s/%s" % (
-                    oc['NGL_DOC'],
-                    oc['DTT_DOC'].strftime("%Y"),
+                name = 'MX-%s/%s' % (
+                    of['NGL_DOC'],
+                    of['DTT_DOC'].strftime("%Y"),
                     )
-                oc_ids = self.search(cr, uid, [
-                    ('name', '=', name),
-                    ('accounting_order', '=', True),
-                    ], context=context)
+                if name in orders:
+                    order_id = orders[name]    
+                else:    
+                    oc_ids = self.search(cr, uid, [
+                        ('name', '=', name),
+                        #('accounting_order', '=', True), # No more used!
+                        ], context=context)
                     
-                if not oc_ids:
-                    _logger.warning('Not found: %s' % name)
-                    continue
-
-                # -------------------------------------------------------------
-                #                       Converters:
-                # -------------------------------------------------------------
-                # Create a converter for carriage condition:
-                carriage_condition = {}
-                cc_pool = self.pool.get('stock.picking.carriage_condition')
-                cc_ids = cc_pool.search(cr, uid, [], context=context)
-                for item in cc_pool.browse(cr, uid, cc_ids, context=context):
-                    if item.account_code:
-                        carriage_condition[item.account_code] = item.id
-
-                # Create a converter for transportation reason:
-                transportation_reason = {}
-                tr_pool = self.pool.get('stock.picking.transportation_reason')
-                tr_ids = tr_pool.search(cr, uid, [], context=context)
-                for item in tr_pool.browse(cr, uid, tr_ids, context=context):
-                    if item.import_id:
-                        transportation_reason[item.import_id] = item.id
+                    header = {
+                        'name': name,
+                        'date_order': of['DTT_DOC'].strftime("%Y"),
+                                                
+                        }
                         
-                # Create a converter for payment:
-                payment = {}
-                payment_pool = self.pool.get('account.payment.term')
-                payment_ids = payment_pool.search(cr, uid, [], context=context)
-                for item in payment_pool.browse(cr, uid, payment_ids, context=context):
-                    if item.import_id:
-                        payment[item.import_id] = item.id
+                    if oc_ids:
+                        _logger.info('Update header: %s' % name)
+                        order_id = of_ids[0]
+                        self.write(cr, uid, order_id, data, context=context)
+                    else:
+                        _logger.info('Create header: %s' % name)
+                        order_id = self.create(cr, uid, ids, data, 
+                            context=context)
+                        orders[name] = order_id
+
                         
                 # ------------------------------------------------    
                 # Update alternate sped address.: CKY_CNT_SPED_ALT
