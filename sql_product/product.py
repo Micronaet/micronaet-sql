@@ -209,7 +209,6 @@ class ProductProduct(orm.Model):
             # --------------
             # Update prices:            
             # --------------
-            import pdb; pdb.set_trace()
             if with_price:
                 # TODO parameterize in call?
                 cursor_price = accounting_pool.get_product_price(
