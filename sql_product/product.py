@@ -81,7 +81,7 @@ class ProductProduct(orm.Model):
     # -------------------------------------------------------------------------
     def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, 
             write_date_from=False, write_date_to=False, create_date_from=False,
-            create_date_to=False, multi_lang=False, with_price=True,
+            create_date_to=False, multi_lang=False, with_price=False,
             context=None):
         ''' Import product from external SQL DB
             self: instance
@@ -114,7 +114,7 @@ class ProductProduct(orm.Model):
         #        create_date_to,
         #        multi_lang,          
         #        ))
-        product_proxy = self.pool.get('product.product')
+        product_pool = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
 
         product_translate = {} # for next translation
@@ -183,7 +183,7 @@ class ProductProduct(orm.Model):
                     else:
                         data['state'] = 'obsolete'
                         
-                    product_ids = product_proxy.search(cr, uid, [
+                    product_ids = product_pool.search(cr, uid, [
                         ('default_code', '=', default_code)])
                     if product_ids:
                         if len(product_ids) > 1:
@@ -194,10 +194,10 @@ class ProductProduct(orm.Model):
                         product_id = product_ids[0]
                         
                         # TODO check if lang is italian in normal creation
-                        product_proxy.write(cr, uid, product_id, data, 
+                        product_pool.write(cr, uid, product_id, data, 
                             context=context)
                     else:
-                        product_id = product_proxy.create(cr, uid, data, 
+                        product_id = product_pool.create(cr, uid, data, 
                             context=context)
                             
                     product_translate[default_code] = product_id # for transl.
@@ -209,6 +209,7 @@ class ProductProduct(orm.Model):
             # --------------
             # Update prices:            
             # --------------
+            import pdb; pdb.set_trace()
             if with_price:
                 # TODO parameterize in call?
                 cursor_price = accounting_pool.get_product_price(
@@ -228,19 +229,11 @@ class ProductProduct(orm.Model):
                                 default_code))
                             continue
                         
-                        lst_price = 0.0
-                        for price in (
-                                record['NPZ_LIS_1'], 
-                                record['NPZ_LIS_1']):
-                            try:
-                                lst_price = float(price.replace(',', '.'))
-                                if lst_price:
-                                    break
-                            except:
-                                _logger.error(
-                                    'Cannot convert price: %s' % price)
-                                pass
-                        
+                        if record['NPZ_LIS_1']:
+                            lst_price = record['NPZ_LIS_1']
+                        else:
+                            # This installation use 2 price
+                            lst_price = record['NPZ_LIS_2']                        
                         product_pool.write(cr, uid, product_id, {
                             'lst_price': lst_price,
                             }, context=context)
