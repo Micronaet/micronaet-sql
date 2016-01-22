@@ -151,6 +151,7 @@ class PurchaseOrderSql(orm.Model):
         query_pool = self.pool.get('micronaet.accounting')
         partner_pool = self.pool.get('res.partner')
         location_pool = self.pool.get('stock.location')
+        pricelist_pool = self.pool.get('product.pricelist')
 
         cr_of = query_pool.get_of_header(cr, uid, context=context)
         if not cr_of:
@@ -173,7 +174,13 @@ class PurchaseOrderSql(orm.Model):
             _logger.error('Cannot found location: Stock')
             return    
         
-        pricelist_id = 2 # TODO     
+        pricelist_ids = pricelist_pool.search(cr, uid, [
+            #('type', '=', 'purchase'),
+            ('name', '=', 'Default Purchase Pricelist'),
+            ], context=context)
+        if not pricelist_ids:
+            _logger.error('Pricelist \'Default Purchase Pricelist\' not found')    
+        pricelist_id = pricelist_ids[0]
     
         # ---------------------------------------------------------------------
         #                           HEADER:
