@@ -166,6 +166,9 @@ class ProductProduct(orm.Model):
                                 record['NKY_CAT_STAT_ART'] or '0') if record[
                                     'CKY_CAT_STAT_ART'] else '',
                             ),
+                        # Price information XXX added after check if need par.    
+                        #'lst_price': record[],
+                        #'standard_price': record[], # cost
                         }
                     # -------------------------    
                     # Test if is to manufacture
@@ -195,11 +198,52 @@ class ProductProduct(orm.Model):
                     else:
                         product_id = product_proxy.create(cr, uid, data, 
                             context=context)
+                            
                     product_translate[default_code] = product_id # for transl.
                 except:
                     _logger.error('Error import product [%s], jumped: %s' % (
                         default_code, 
                         sys.exc_info(), ))
+
+            # --------------
+            # Update prices:            
+            # --------------
+            import pdb; pdb.set_trace()
+            # TODO parameterize in call?
+            cursor_price = accounting_pool.get_product_price(
+                cr, uid, context=context)
+            if not cursor_price:
+                _logger.error(
+                    "Unable to connect no importation of price!")
+                return False
+            
+            _logger.info('Start update pricelist in product')
+            for record in cursor_price:
+                try:
+                    default_code = record['CKY_ART']
+                    product_id = product_translate.get(default_code, False)
+                    if not product_id:
+                        _logger.error('Product not found %s for price' % (
+                            default_code))
+                        continue
+                    
+                    lst_price = 0.0
+                    for price in (record['NPZ_LIS_1'], record['NPZ_LIS_1']):
+                        try:
+                            lst_price = float(price.replace(',', '.'))
+                            if lst_price:
+                                break
+                        except:
+                            _logger.error('Cannot convert price: %s' % price)
+                            pass
+                    
+                    product_pool.write(cr, uid, product_id, {
+                        'lst_price': lst_price,
+                        }, context=context)
+                except:
+                    _logger.error('Product not found %s for price' % (
+                        default_code))
+                        
             
             # ------------------------
             # Update translated terms:            
