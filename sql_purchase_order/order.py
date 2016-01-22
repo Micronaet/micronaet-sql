@@ -293,7 +293,7 @@ class PurchaseOrderSql(orm.Model):
                         context=context)
                         
                 # Save for line:
-                orders[name] = order_id
+                orders[of['NGL_DOC']] = order_id
 
             except:
                 _logger.error('Problem with record: %s > %s'%(
@@ -303,7 +303,7 @@ class PurchaseOrderSql(orm.Model):
         #                           LINE:
         # ---------------------------------------------------------------------
         _logger.info('Start import OF lines')
-        line_pool = self.pool.get('sale.order.line')
+        line_pool = self.pool.get('purchase.order.line')
         product_pool = self.pool.get('product.product')
         
         cr_of_line = query_pool.get_of_line(cr, uid, context=context)
@@ -316,51 +316,49 @@ class PurchaseOrderSql(orm.Model):
                 # -----------------------------
                 # Get product browse from code:
                 # -----------------------------
-                name = 'MX-%s/%s' % (
-                    of_line['NGL_DOC'], of_line['DTT_DOC'].strftime('%Y'))
-                order_id = orders.get(name, False)
+                order_id = orders.get(of_line['NGL_DOC'], False)
                 if not order_id:
                     _logger.error('Order not found: %s' % name)  
                     continue
 
                 # Product:
-                product_code = oc_line['CKY_ART'].strip()
+                product_code = of_line['CKY_ART'].strip()
                 product_ids = product_pool.search(cr, uid, [
                     ('default_code', '=', product_code)], context=context)               
                 if not product_ids:
                     _logger.info(
-                        _('No product found (OC line jumped): %s') % (
+                        _('No product found (OFC line jumped): %s') % (
                             product_code))                
                     continue                            
                 product_browse = product_pool.browse(
                     cr, uid, product_ids, context=context)[0]
 
-                date_planned = oc_line['DTT_SCAD'].strftime(
+                date_planned = of_line['DTT_SCAD'].strftime(
                     DEFAULT_SERVER_DATE_FORMAT)
 
                 # NOTE ID of line in OC (not sequence=order)
-                sequence = oc_line['NPR_RIGA']
+                sequence = of_line['NPR_RIGA']
                 uom_id = product_browse.uom_id.id if product_browse else False
                 conversion = (
-                    oc_line['NCF_CONV'] if oc_line['NCF_CONV'] else 1.0)
+                    of_line['NCF_CONV'] if of_line['NCF_CONV'] else 1.0)
                 
                 # pack * unit item * conversion
-                quantity = (oc_line['NGB_COLLI'] or 1.0) * (
-                    oc_line['NQT_RIGA_O_PLOR'] or 0.0) * 1.0 / conversion
+                quantity = (of_line['NGB_COLLI'] or 1.0) * (
+                    of_line['NQT_RIGA_O_PLOR'] or 0.0) * 1.0 / conversion
                 
                 # HEADER: Save deadline in OC (only first time):
-                #if not oc_header[oc_key][1]:
+                #if not of_header[of_key][1]:
                 #    # take the first deadline and save in header
                 #    if date_deadline:
-                #        oc_header[oc_key][1] = True
+                #        of_header[of_key][1] = True
                 #        mod = self.write(cr, uid, order_id, {
                 #            'date_deadline': date_deadline}, context=context)
 
                 # Discount block:    
                 #discount = False
                 #multi_discount_rates = False    
-                account_scale = oc_line['CSG_SCN'].strip()
-                discount = account_scale or False
+                account_scale = of_line['CSG_SCN'].strip() or ''
+                discount = account_scale.replace(',', '.')
                 #if account_scale:
                 #    try:
                 #        res = line_pool.on_change_multi_discount(
@@ -377,31 +375,62 @@ class PurchaseOrderSql(orm.Model):
 
                 data = {
                     'product_id': product_browse.id,
-                    'product_uom_qty': quantity,
+                    'product_qty': quantity,
                     'order_id': order_id,
                     'date_planned': date_planned,
                     'product_uom': uom_id,
-                    'name': oc_line['CDS_VARIAZ_ART'],                    
+                    'name': of_line['CDS_VARIAZ_ART'],                    
                     'price_unit': (
-                        oc_line['NPZ_UNIT'] or 0.0) * conversion,
+                        of_line['NPZ_UNIT'] or 0.0) * conversion,
                     # Correct depend on fiscal position    
-                    'tax_id': [
+                    'sequence': sequence,
+
+                    # not present:
+                    'discount': discount,
+                    'taxes_id': [
                         (6, 0, [product_browse.taxes_id[0].id, ])
                         ] if product_browse and product_browse.taxes_id
                             else False, # CSG_IVA
-                    'sequence': sequence,
-                    'discount': discount,
                     #'multi_discount_rates': multi_discount_rates,
                     
                     # Related fields ------------------------------------------
                     #'partner_id': order_partner.get(order_id, False),
                     }
+                line_ids = line_pool.search(cr, uid, [
+                    ('order_id', '=', order_id),
+                    ('sequence', '=', sequence),
+                    ], context=context)    
+                if line_ids:
+                    line_pool.write(cr, uid, line_ids[0], data, context=context)
+                    _logger.info('Order: %s line %s updated' % (
+                        of_line['NGL_DOC'], 
+                        sequence,
+                        ))
+                else:        
+                    line_pool.create(cr, uid, data, context=context)
+                    _logger.info('Order: %s line %s created' % (
+                        of_line['NGL_DOC'], 
+                        sequence,
+                        ))
 
             except:
-                _logger.error('Problem with oc line record: %s\n%s' % (
-                    oc_line, sys.exc_info()))
+                _logger.error('Problem with of line record: %s\n%s' % (
+                    of_line, sys.exc_info()))
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!        
         _logger.info('End importation OF header and line!')
         return
+        
+        
+class PurchaseOrderLine(orm.Model):
+    ''' Extra fields used
+    '''
+    _inherit = 'purchase.order.line'
+    
+    _columns = {
+        # TODO change module position
+        'discount': fields.float('Discount', digits=(16, 3)), 
+        'discount_scale': fields.char('Discount scale', size=40), 
+        'sequence': fields.integer('Sequence'), 
+        }    
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
