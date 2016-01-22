@@ -166,7 +166,6 @@ class ResPartner(orm.Model):
             # Create agent-partner in ODOO:
             # -----------------------------
             # Link agent to product:
-            import pdb; pdb.set_trace()
             cursor = self.pool.get(
                 'micronaet.accounting').get_partner_agent_linked_to_agent(
                     cr, uid, context=context)
