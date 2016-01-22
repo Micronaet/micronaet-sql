@@ -219,7 +219,12 @@ class ProductProduct(orm.Model):
                     return False
                 
                 _logger.info('Start update pricelist in product')
+                i = 0
                 for record in cursor_price:
+                    i += 1
+                    if verbose_log_count and i % verbose_log_count == 0:
+                        _logger.info('Update price record #%s' % i)                             
+
                     try:
                         default_code = record['CKY_ART']
                         product_id = product_translate.get(default_code, False)
