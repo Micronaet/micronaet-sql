@@ -88,7 +88,6 @@ class ResCompany(orm.Model):
     _inherit = 'res.company'
     
     _columns = {
-        # XXX Used?
         'sql_agent_from_code': fields.char('From agent >=', size=3), 
         'sql_agent_to_code': fields.char('To agent <', size=3), 
         }

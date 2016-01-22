@@ -26,6 +26,20 @@
             </field>
         </field>
     </record>
+
+    <!--res.company--> 
+    <record model="ir.ui.view" id="res_company_agent_form_view_customize">
+        <field name="name">Company SQL partner (agent)</field>
+        <field name="model">res.company</field>        
+        <field name="inherit_id" ref="sql_partner.res_company_form_view_customize" />
+        <field name="arch" type="xml">
+           <field name="sql_destination_from_code">
+               <field name="sql_agent_from_code" />
+               <field name="sql_agent_to_code" />
+           </field>    
+        </field>
+    </record>    
+        
 </data>
 </openerp>
 

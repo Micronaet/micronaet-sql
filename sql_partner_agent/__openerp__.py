@@ -38,9 +38,9 @@
     ],
     'init_xml': [], 
     'data': [
-             'scheduler.xml',
-             'agent_views.xml',
-            ],
+         'scheduler.xml',
+         'agent_views.xml',
+         ],
     'demo_xml': [],
     'active': False, 
     'installable': True, 
