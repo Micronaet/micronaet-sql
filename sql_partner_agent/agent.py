@@ -171,7 +171,7 @@ class ResPartner(orm.Model):
                 for record in cursor:
                     try:                        
                         data = {
-                            'name': record['CDS_CNT']
+                            'name': record['CDS_CNT'],
                             'is_agent': True,
                             'sql_agent_code': record['CKY_CNT'],
                             #'agent_id': False,
