@@ -133,12 +133,6 @@ class PurchaseOrderSql(orm.Model):
                 payment[item.import_id] = item.id
         return        
     
-    #def get_oc_key(self, record):
-    #    ''' Compose and return key for OC
-    #    '''
-    #    return (record['CSG_DOC'].strip(), record['NGB_SR_DOC'],
-    #        record['NGL_DOC'])
-
     def get_uom(self, cr, uid, name, context=None):
         uom_id = self.pool.get('product.uom').search(cr, uid, [
             ('name', '=', name), ])
@@ -176,7 +170,7 @@ class PurchaseOrderSql(orm.Model):
         location_ids = location_pool.search(cr, uid, [
             ('name', '=', 'Stock')], context=context)            
         if not location_ids:
-            _logger.error('Cannot found location: WH/Stock')
+            _logger.error('Cannot found location: Stock')
             return    
         
         pricelist_id = 2 # TODO     
@@ -310,42 +304,39 @@ class PurchaseOrderSql(orm.Model):
         # ---------------------------------------------------------------------
         _logger.info('Start import OF lines')
         line_pool = self.pool.get('sale.order.line')
+        product_pool = self.pool.get('product.product')
+        
         cr_of_line = query_pool.get_of_line(cr, uid, context=context)
         if not cr_of_line:
             _logger.error('Cannot connect to MSSQL OF_RIGHE')
             return
 
-        i = 0
-        '''for of_line in cr_of_line:
+        for of_line in cr_of_line:
             try:
-                i += 1
-                if i % 100 == 0:
-                    _logger.info('Sync %s lines' % i)
-                    
-                of_key = get_of_key(of_line)
-                if of_key not in of_header:
-                    _logger.warning(
-                        'Header order not found (old order?): OC-%s' % (
-                            oc_key[2]))
-                    continue
-
                 # -----------------------------
                 # Get product browse from code:
                 # -----------------------------
-                product_browse = browse_product_ref(
-                    self, cr, uid, oc_line['CKY_ART'].strip(), 'Unit(s)', 
-                    context=context)
-                if not product_browse:
-                    _logger.info(
-                        _('No product found (OC line jumped): %s') % (
-                            oc_line['CKY_ART'], ))
+                name = 'MX-%s/%s' % (
+                    of_line['NGL_DOC'], of_line['DTT_DOC'].strftime('%Y'))
+                order_id = orders.get(name, False)
+                if not order_id:
+                    _logger.error('Order not found: %s' % name)  
                     continue
 
-                order_id = oc_header[oc_key][0]
-                date_deadline = oc_line['DTT_SCAD'].strftime(
-                    '%Y-%m-%d') if oc_line[
-                        'DTT_SCAD'] and oc_line[
-                            'DTT_SCAD'] != empty_date else False
+                # Product:
+                product_code = oc_line['CKY_ART'].strip()
+                product_ids = product_pool.search(cr, uid, [
+                    ('default_code', '=', product_code)], context=context)               
+                if not product_ids:
+                    _logger.info(
+                        _('No product found (OC line jumped): %s') % (
+                            product_code))                
+                    continue                            
+                product_browse = product_pool.browse(
+                    cr, uid, product_ids, context=context)[0]
+
+                date_planned = oc_line['DTT_SCAD'].strftime(
+                    DEFAULT_SERVER_DATE_FORMAT)
 
                 # NOTE ID of line in OC (not sequence=order)
                 sequence = oc_line['NPR_RIGA']
@@ -357,136 +348,58 @@ class PurchaseOrderSql(orm.Model):
                 quantity = (oc_line['NGB_COLLI'] or 1.0) * (
                     oc_line['NQT_RIGA_O_PLOR'] or 0.0) * 1.0 / conversion
                 
-                try:
-                    family_id = product_browse.family_id.id
-                except:
-                    family_id = False    
-
                 # HEADER: Save deadline in OC (only first time):
-                if not oc_header[oc_key][1]:
-                    # take the first deadline and save in header
-                    if date_deadline:
-                        oc_header[oc_key][1] = True
-                        mod = self.write(cr, uid, order_id, {
-                            'date_deadline': date_deadline}, context=context)
+                #if not oc_header[oc_key][1]:
+                #    # take the first deadline and save in header
+                #    if date_deadline:
+                #        oc_header[oc_key][1] = True
+                #        mod = self.write(cr, uid, order_id, {
+                #            'date_deadline': date_deadline}, context=context)
 
-                # ---------------                    
                 # Discount block:    
-                # ---------------                    
-                discount = False
-                multi_discount_rates = False    
+                #discount = False
+                #multi_discount_rates = False    
                 account_scale = oc_line['CSG_SCN'].strip()
-                if account_scale:
-                    try:
-                        res = line_pool.on_change_multi_discount(
-                            cr, uid, False, account_scale, 
-                            context=context)['value']
-                        discount = res.get('discount', False)
-                        multi_discount_rates = res.get(
-                            'multi_discount_rates', False)
-                    except:
-                        _logger.error(
-                            'Error calculating discount value: %s' % (
-                                account_scale))
-                        pass
+                discount = account_scale or False
+                #if account_scale:
+                #    try:
+                #        res = line_pool.on_change_multi_discount(
+                #            cr, uid, False, account_scale, 
+                #            context=context)['value']
+                #        discount = res.get('discount', False)
+                #        multi_discount_rates = res.get(
+                #            'multi_discount_rates', False)
+                #    except:
+                #        _logger.error(
+                #            'Error calculating discount value: %s' % (
+                #                account_scale))
+                #        pass
 
-                # Common part of record (update/create):
-                data_update = { # update
+                data = {
+                    'product_id': product_browse.id,
                     'product_uom_qty': quantity,
                     'order_id': order_id,
-                    }
-                
-                # Create only record:                
-                data_create = { # create
-                    # Notmal fields -------------------------------------------
-                    'product_id': product_browse.id,
-                    'date_deadline': date_deadline,
+                    'date_planned': date_planned,
                     'product_uom': uom_id,
-                    'name': oc_line['CDS_VARIAZ_ART'],
-                    
+                    'name': oc_line['CDS_VARIAZ_ART'],                    
                     'price_unit': (
                         oc_line['NPZ_UNIT'] or 0.0) * conversion,
+                    # Correct depend on fiscal position    
                     'tax_id': [
                         (6, 0, [product_browse.taxes_id[0].id, ])
                         ] if product_browse and product_browse.taxes_id
                             else False, # CSG_IVA
                     'sequence': sequence,
                     'discount': discount,
-                    'multi_discount_rates': multi_discount_rates,
+                    #'multi_discount_rates': multi_discount_rates,
                     
                     # Related fields ------------------------------------------
-                    'accounting_order': True,
-                    'family_id': family_id,
-                    'partner_id': order_partner.get(order_id, False),
-                    'is_manufactured': product_browse.internal_manufacture,
+                    #'partner_id': order_partner.get(order_id, False),
                     }
 
-                # --------------------
-                # Syncronization part:
-                # --------------------
-                key = (
-                    order_id, 
-                    data_create['product_id'], 
-                    data_create['date_deadline'], )
-
-                # Loop on all odoo order line for manage sync mode
-                if update and key in DB_line:
-                    # [ID, finded, q., maked, state]                    
-                    element = DB_line[key]
-                    oc_line_id = element[0]
-                    #TODO totalize all key line for duplications
-                     
-                    # 4 case (all not B, all B, not B-B, B-not B                            
-                    # TODO test instead of writing for speed up
-                    if oc_line['IST_RIGA_SOSP'] == 'B':
-                        element[3] += data_update['product_uom_qty'] # counter
-                        data_update['product_uom_maked_sync_qty'] = element[3]
-                        if element[1]: # TODO not B first or error??
-                            del data_update['product_uom_qty'] # leave prev.
-                        else: # Create B line
-                            element[1] = True # set line as assigned!
-                        line_pool.write(
-                            cr, uid, oc_line_id, data_update, 
-                            context=context)
-                            # TODO sync_state = ?
-                    else: # Line not produced:              
-                        data_update['sequence'] = sequence # only without B line
-      
-                        if not element[1]: # error or B created first
-                            #if abs(element[4] - quantity) < 1.0: 
-                            #data_update['accounting_state'] = 'new' #TODO need
-                            element[1] = True # set line as assigned!
-
-                            # Modify record:
-                        line_pool.write(
-                            cr, uid, oc_line_id, data_update, 
-                            context=context)
-                else: # Create record, not found: (product_id-date_deadline)
-                    # Update record with value for creation:                    
-                    data_update.update(data_create)
-                    # TODO manage better!!!!!!
-                    #if oc_line['IST_RIGA_SOSP'] == 'B':
-                    #    account_maked = data_update.get(
-                    #        'product_uom_qty', 0.0)
-                    #    data_update[
-                    #        'product_uom_maked_sync_qty'] = account_maked
-                    #else:
-                    #    account_maked = 0.0
-                        
-                    oc_line_id = line_pool.create(
-                        cr, uid, data_update, context=context)
-                        
-                    # TODO needed?!?    
-                    
-                    #DB_line[key] = [oc_line_id, True,
-                    #    data_update.get(
-                    #        'product_uom_qty', 0.0), account_maked, '']
-                    
-                    # product_uom_maked_sync_qty
-                    # data_update.get('sync_state', False), # TODO change?
             except:
                 _logger.error('Problem with oc line record: %s\n%s' % (
-                    oc_line, sys.exc_info()))'''
+                    oc_line, sys.exc_info()))
 
         # TODO testare bene gli ordini di produzione che potrebbero avere delle mancanze!        
         _logger.info('End importation OF header and line!')
