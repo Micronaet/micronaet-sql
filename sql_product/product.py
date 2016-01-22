@@ -81,7 +81,8 @@ class ProductProduct(orm.Model):
     # -------------------------------------------------------------------------
     def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, 
             write_date_from=False, write_date_to=False, create_date_from=False,
-            create_date_to=False, multi_lang=False, context=None):
+            create_date_to=False, multi_lang=False, with_price=True,
+            context=None):
         ''' Import product from external SQL DB
             self: instance
             cr: cursor
@@ -91,6 +92,7 @@ class ProductProduct(orm.Model):
             write_date_to: write to
             create_date_from: create from 
             create_date_to: create to
+            with_price: if force price (sale) 
             multi_lang: dict of extra language, ex.: {1: 'en_US'} where key
                         is ID in accounting, value is language code
             context: args passed            
@@ -166,8 +168,7 @@ class ProductProduct(orm.Model):
                                 record['NKY_CAT_STAT_ART'] or '0') if record[
                                     'CKY_CAT_STAT_ART'] else '',
                             ),
-                        # Price information XXX added after check if need par.    
-                        #'lst_price': record[],
+                        # TODO parametrize cost price
                         #'standard_price': record[], # cost
                         }
                     # -------------------------    
@@ -208,41 +209,44 @@ class ProductProduct(orm.Model):
             # --------------
             # Update prices:            
             # --------------
-            import pdb; pdb.set_trace()
-            # TODO parameterize in call?
-            cursor_price = accounting_pool.get_product_price(
-                cr, uid, context=context)
-            if not cursor_price:
-                _logger.error(
-                    "Unable to connect no importation of price!")
-                return False
-            
-            _logger.info('Start update pricelist in product')
-            for record in cursor_price:
-                try:
-                    default_code = record['CKY_ART']
-                    product_id = product_translate.get(default_code, False)
-                    if not product_id:
+            if with_price:
+                # TODO parameterize in call?
+                cursor_price = accounting_pool.get_product_price(
+                    cr, uid, context=context)
+                if not cursor_price:
+                    _logger.error(
+                        "Unable to connect no importation of price!")
+                    return False
+                
+                _logger.info('Start update pricelist in product')
+                for record in cursor_price:
+                    try:
+                        default_code = record['CKY_ART']
+                        product_id = product_translate.get(default_code, False)
+                        if not product_id:
+                            _logger.error('Product not found %s for price' % (
+                                default_code))
+                            continue
+                        
+                        lst_price = 0.0
+                        for price in (
+                                record['NPZ_LIS_1'], 
+                                record['NPZ_LIS_1']):
+                            try:
+                                lst_price = float(price.replace(',', '.'))
+                                if lst_price:
+                                    break
+                            except:
+                                _logger.error(
+                                    'Cannot convert price: %s' % price)
+                                pass
+                        
+                        product_pool.write(cr, uid, product_id, {
+                            'lst_price': lst_price,
+                            }, context=context)
+                    except:
                         _logger.error('Product not found %s for price' % (
                             default_code))
-                        continue
-                    
-                    lst_price = 0.0
-                    for price in (record['NPZ_LIS_1'], record['NPZ_LIS_1']):
-                        try:
-                            lst_price = float(price.replace(',', '.'))
-                            if lst_price:
-                                break
-                        except:
-                            _logger.error('Cannot convert price: %s' % price)
-                            pass
-                    
-                    product_pool.write(cr, uid, product_id, {
-                        'lst_price': lst_price,
-                        }, context=context)
-                except:
-                    _logger.error('Product not found %s for price' % (
-                        default_code))
                         
             
             # ------------------------
