@@ -40,6 +40,32 @@ class MicronaetAccounting(orm.Model):
     '''    
     _inherit = 'micronaet.accounting'
 
+    def get_partner_agent_from_commercial_range(
+            self, cr, uid, from_code, to_code, context=None):
+        ''' Import partner extra commercial info
+            Table: PA_RUBR_PDC_CLFR
+        '''
+        table = 'pa_rubr_pdc_clfr'
+        if self.pool.get('res.company').table_capital_name(
+                cr, uid, context=context):
+            table = table.upper()
+
+        cursor = self.connect(cr, uid, context=context)        
+        try:
+            cursor.execute("""
+                SELECT CKY_CNT, CDS_CNT 
+                FROM %s 
+                WHERE 
+                    CKY_CNT_AGENTE >= '%s' AND
+                    CKY_CNT_AGENTE < '%s'
+                     ;""" % (table, from_code, to_code))
+            return cursor # with the query setted up                  
+        except: 
+            _logger.error("Executing query %s: [%s]" % (
+                table,
+                sys.exc_info(), ))
+            return False 
+
     def get_partner_agent_from_commercial(self, cr, uid, context=None):
         ''' Import partner extra commercial info
             Table: PC_CONDIZIONI_COMM
@@ -88,8 +114,8 @@ class ResCompany(orm.Model):
     _inherit = 'res.company'
     
     _columns = {
-        'sql_agent_from_code': fields.char('From agent >=', size=3), 
-        'sql_agent_to_code': fields.char('To agent <', size=3), 
+        'sql_agent_from_code': fields.char('SQL From agent >=', size=3), 
+        'sql_agent_to_code': fields.char('SQL To agent <', size=3), 
         }
 
 class ResPartner(orm.Model):
@@ -117,7 +143,58 @@ class ResPartner(orm.Model):
             
             # Pool used:
             partner_proxy = self.pool.get('res.partner')
+            company_pool = self.pool.get('res.company')
 
+            # -------------------------------------------------------------
+            # Fast creation of partner (only name for agent from - to code:
+            # -------------------------------------------------------------
+            company_proxy = company_pool.get_from_to_dict(
+                cr, uid, context=context)
+            if not company_proxy:
+                _logger.error('Company parameters not setted up!')
+
+            # Customer range
+            from_code = company_proxy.sql_agent_from_code
+            to_code =  company_proxy.sql_agent_to_code
+            
+            if False and from_code and fo_code: # TODO locked part for now!!
+                cursor = self.pool.get('micronaet.accounting'
+                    ).get_partner_agent_from_commercial_range(
+                        cr, uid, from_code, to_code, context=context) 
+                if not cursor:
+                    _logger.error(
+                        "Unable to connect, no importation commercial list!")
+                    return False
+
+                _logger.info('Start import from: %s to: %s' % (
+                    from_code, to_code))
+                for record in cursor:
+                    try:                        
+                        data = {
+                            'name': record['CDS_CNT']
+                            'is_agent': True,
+                            'sql_agent_code': record['CKY_CNT'],
+                            #'agent_id': False,
+                            }
+
+                        # Search code to update:
+                        partner_ids = partner_proxy.search(cr, uid, [
+                            ('sql_agent_code', '=', record['CKY_CNT'])])
+                        if partner_ids: # update
+                            partner_proxy.write(
+                                cr, uid, partner_ids, data, context=context)
+                        else:        
+                            partner_proxy.create(
+                                cr, uid, data, context=context)
+                    except:
+                        _logger.error(
+                            'Error importing agent [%s], jumped: %s' % (
+                                record['CKY_CNT'], 
+                                sys.exc_info())
+                        )
+                                
+                _logger.info('All partner agent range is updated!')
+            
             # ---------------------            
             # Create agent in ODOO:
             # ---------------------            
