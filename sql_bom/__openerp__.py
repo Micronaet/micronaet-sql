@@ -21,7 +21,7 @@
 ##############################################################################
 
 {
-    'name': 'SQL Partner',
+    'name': 'SQL BOM import',
     'version': '0.0.1',
     'category': 'Generic Modules/ETL',
     'description': '''

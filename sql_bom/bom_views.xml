@@ -1,6 +1,28 @@
 <?xml version="1.0" ?>
 <openerp>
 <data>
+    <record model="ir.ui.view" id="view_model_name_search">
+        <field name="name">mrp.bom.imported.search</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.view_mrp_bom_filter"/>
+        <field name="arch" type="xml">
+            <field name="name">                
+               <filter name="imported" string="Imported" domain="[('sql_import','=',True)]"/>
+               <filter name="not_imported" string="Not imported" domain="[('sql_import','=',False)]"/>
+            </field>
+        </field>
+    </record>
+    
+    <record model="ir.ui.view" id="view_product_product_bom_ref_form">
+        <field name="name">product.product.bom.refform</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <field name="route_ids" position="before">
+                <field name="imported_bom_id" readonly="1" />
+            </field>
+        </field>
+    </record>
 </data>
 </openerp>
 

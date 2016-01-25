@@ -84,6 +84,7 @@ class MrpBom(orm.Model):
     ''' Add extra field to bom for importation
     '''
     _inherit = 'mrp.bom'
+    _rec_name = 'product_tmpl_id'
     
     _columns = {
         'sql_import': fields.boolean('SQL import'),
@@ -234,4 +235,33 @@ class MrpBom(orm.Model):
         _logger.info('All BOM is updated!')
         return True
 
+class ProductProduct(orm.Model):
+    """ Model name: ProductProduct
+    """    
+    _inherit = 'product.product'
+    
+    def _get_imported_bom(self, cr, uid, ids, fields, args, context=None):
+        ''' Fields function for calculate 
+        ''' 
+        # Pool used:
+        mrp_pool = self.pool.get('mrp.bom')
+        
+        res = {}
+        for product_id in ids:
+            mrp_id = mrp_pool.search(cr, uid, [
+                ('sql_import', '=', True),
+                ('product_id', '=', product_id)
+                ], context=context)
+            if mrp_id:
+                res[product_id] = mrp_id[0]
+            else:    
+                res[product_id] = False
+        return res
+        
+    _columns = {
+        'imported_bom_id': fields.function(
+            _get_imported_bom, method=True, 
+            type='many2one', string='Bom ref.', relation='mrp.bom',
+            store=False), 
+        }
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
