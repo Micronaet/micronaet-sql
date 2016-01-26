@@ -118,12 +118,12 @@ class ProductProduct(orm.Model):
             update ledger from account
         '''
         
-        super(ProductProduct, self).schedule_sql_product_import(
+        '''super(ProductProduct, self).schedule_sql_product_import(
             cr, uid, verbose_log_count=100, 
             write_date_from=write_date_from, write_date_to=write_date_to, 
             create_date_from=create_date_from, 
             create_date_to=create_date_to, multi_lang=multi_lang, 
-            context=context)
+            context=context)'''
 
         _logger.info('Start update ledger to product')
         
