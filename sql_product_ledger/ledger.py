@@ -117,13 +117,12 @@ class ProductProduct(orm.Model):
         ''' Use same action for import product, before will import that after
             update ledger from account
         '''
-        import pdb; pdb.set_trace()
-        '''super(ProductProduct, self).schedule_sql_product_import(
+        super(ProductProduct, self).schedule_sql_product_import(
             cr, uid, verbose_log_count=100, 
             write_date_from=write_date_from, write_date_to=write_date_to, 
             create_date_from=create_date_from, 
             create_date_to=create_date_to, multi_lang=multi_lang, 
-            context=context)'''
+            context=context)
 
         _logger.info('Start update ledger to product')
         

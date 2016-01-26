@@ -56,15 +56,16 @@ class res_company(orm.Model):
             raise osv.except_osv(_('Connection error:'), _("OpenERP cannot connect with SQL database using this parameters!"))
         return True
 
-    def table_capital_name(self, cr, uid, company_id = 0, context = None):
+    def table_capital_name(self, cr, uid, company_id=0, context=None):
         ''' Test if table MySQL has capital name
         '''
         try: 
             if not company_id:
                 company_id = self.search(cr, uid, [], context=context)[0]
             
-            company_proxy = self.browse(cr, uid, company_id, context=context)
-            
+            # TODO check why there's a problem here!!!
+            company_proxy = self.browse(
+                cr, uid, [company_id], context=context)[0]            
             return company_proxy.capital_name
         except:
             return True
