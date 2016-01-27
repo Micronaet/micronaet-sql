@@ -100,7 +100,6 @@ class ProductProduct(osv.osv):
             products[product.default_code] = product.id
             
         # Update partner    
-        import pdb; pdb.set_trace() 
         for record in cursor:
             default_code = record['CKY_ART']
             partner_code = record['CKY_CNT_FOR_AB']
@@ -109,16 +108,16 @@ class ProductProduct(osv.osv):
             
             if default_code not in products:
                 _logger.error('Product code non found: %s' % default_code)
-            product_id = products[default_code]    
-            
+                
+            product_id = products[default_code]                
             partner_ids = partner_pool.search(cr, uid, [
                 ('sql_supplier_code', '=', partner_code)], context=context)
-
             if not partner_ids:
                 _logger.error('Partner code non found: %s' % partner_code)
             
             # Update
             self.write(cr, uid, product_id, {
-                'first_supllier_id': partner_ids[0],
+                'first_supplier_id': partner_ids[0],
                 }, context=context)
+            _logger.info('Update %s > %s' % (default_code, partner_code))    
 
