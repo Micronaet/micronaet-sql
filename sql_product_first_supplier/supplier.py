@@ -75,12 +75,13 @@ class ProductProduct(osv.osv):
             context=None):
         ''' Update product with first supplier
         '''    
-        
+        _logger.info('Start update first supplier')
+
         # Pool used:
         partner_pool = self.pool.get('res.partner')
+
         # Import product fist:    
-        # TODO remove
-        '''super(ProductProduct, self).schedule_sql_product_import(
+        super(ProductProduct, self).schedule_sql_product_import(
             cr, uid, verbose_log_count=verbose_log_count, 
             write_date_from=write_date_from, 
             write_date_to=write_date_to, 
@@ -88,7 +89,7 @@ class ProductProduct(osv.osv):
             create_date_to=create_date_to, 
             multi_lang=multi_lang, 
             with_price=with_price,
-            context=context)'''
+            context=context)
         cursor = self.pool.get(
             'micronaet.accounting').get_product_first_supplier(
                 cr, uid, context=context)
@@ -98,6 +99,7 @@ class ProductProduct(osv.osv):
         product_ids = self.search(cr, uid, [], context=context)
         for product in self.browse(cr, uid, product_ids, context=context):
             products[product.default_code] = product.id
+        _logger.info('Product database created')
             
         # Update partner    
         for record in cursor:
@@ -121,4 +123,5 @@ class ProductProduct(osv.osv):
                 'first_supplier_id': partner_ids[0],
                 }, context=context)
             _logger.info('Update %s > %s' % (default_code, partner_code))    
+        _logger.info('End syncronization')
 
