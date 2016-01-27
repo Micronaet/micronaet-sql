@@ -114,6 +114,7 @@ class ProductProduct(osv.osv):
                 ('sql_supplier_code', '=', partner_code)], context=context)
             if not partner_ids:
                 _logger.error('Partner code non found: %s' % partner_code)
+                continue
             
             # Update
             self.write(cr, uid, product_id, {
