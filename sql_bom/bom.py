@@ -125,7 +125,7 @@ class MrpBom(orm.Model):
             return bom_ids[0]
             
         product_proxy = product_pool.browse(
-            cr, uid, product_ids, context=context)[0]    
+            cr, uid, product_ids, context=context)[0]
         return self.create(cr, uid, {        
             'product_tmpl_id': product_proxy.product_tmpl_id.id, 
             'product_id': product_ids[0], 
