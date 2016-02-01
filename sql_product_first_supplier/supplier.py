@@ -81,15 +81,15 @@ class ProductProduct(osv.osv):
         partner_pool = self.pool.get('res.partner')
 
         # Import product fist:    
-        #super(ProductProduct, self).schedule_sql_product_import(
-        #    cr, uid, verbose_log_count=verbose_log_count, 
-        #    write_date_from=write_date_from, 
-        #    write_date_to=write_date_to, 
-        #    create_date_from=create_date_from,
-        #    create_date_to=create_date_to, 
-        #    multi_lang=multi_lang, 
-        #    with_price=with_price,
-        #    context=context)
+        super(ProductProduct, self).schedule_sql_product_import(
+            cr, uid, verbose_log_count=verbose_log_count, 
+            write_date_from=write_date_from, 
+            write_date_to=write_date_to, 
+            create_date_from=create_date_from,
+            create_date_to=create_date_to, 
+            multi_lang=multi_lang, 
+            with_price=with_price,
+            context=context)
         cursor = self.pool.get(
             'micronaet.accounting').get_product_first_supplier(
                 cr, uid, context=context)
