@@ -113,7 +113,8 @@ class ProductProduct(orm.Model):
     # Override action:
     def schedule_sql_product_import(self, cr, uid, verbose_log_count=100, 
             write_date_from=False, write_date_to=False, create_date_from=False,
-            create_date_to=False, multi_lang=False, context=None):
+            create_date_to=False, multi_lang=False, with_price=False, 
+            context=None):
         ''' Use same action for import product, before will import that after
             update ledger from account
         '''
@@ -122,7 +123,7 @@ class ProductProduct(orm.Model):
             write_date_from=write_date_from, write_date_to=write_date_to, 
             create_date_from=create_date_from, 
             create_date_to=create_date_to, multi_lang=multi_lang, 
-            context=context)
+            with_price=with_price, context=context)
 
         _logger.info('Start update ledger to product')
         
