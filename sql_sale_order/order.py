@@ -727,6 +727,11 @@ class sale_order_line_extra(osv.osv):
         '''
         return self.pool.get('sale.order.line').search(cr, uid, [
             ('order_id', 'in', ids)], context=context)
+
+    def _get_new_name_line(self, cr, uid, ids, context=None):
+        ''' Line added after
+        '''
+        return ids
     
     # is_manufactured:     
     def _refresh_manufacture_state(self, cr, uid, ids, context=None):
@@ -767,7 +772,10 @@ class sale_order_line_extra(osv.osv):
         # Optimize modification:
         'partner_id': fields.related('order_id', 'partner_id', type='many2one', 
             relation='res.partner', string='Partner', 
-            store={'sale.order': (_get_new_name, ['partner_id'], 10)}), 
+            store={
+                'sale.order': (_get_new_name, ['partner_id'], 10),
+                'sale.order.line': (_get_new_name_line, ['order_id'], 10),
+                }), 
         'default_code': fields.related('product_id', 'default_code', 
             type='char', 
             string='Code', store=False), 
