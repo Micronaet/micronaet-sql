@@ -23,6 +23,17 @@
             </field>
         </field>
     </record>
+    
+    <record model="ir.ui.view" id="view_bom_imported_form">
+        <field name="name">mrp.bom.form</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+            <field name="type" position="after">
+                <field name="sql_import" string="Used to unload stock"/>
+            </field>    
+        </field>
+    </record>
 </data>
 </openerp>
 
