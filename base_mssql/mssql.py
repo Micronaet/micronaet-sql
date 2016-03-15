@@ -49,7 +49,8 @@ class res_company(orm.Model):
     def test_database_connection(self, cr, uid, ids, context = None):
         ''' Test if with the current configuration OpenERP can connect to database
         '''
-        cursor = self.mssql_connect(cr, uid, company_id = 0, as_dict = True, context = context)
+        cursor = self.mssql_connect(cr, uid, company_id=0, as_dict=True, 
+            context=context)
         if cursor:
             raise osv.except_osv(_('Connection test:'), _("OpenERP succesfully connected with SQL database using this parameters!"))
         else:
@@ -62,10 +63,9 @@ class res_company(orm.Model):
         try: 
             if not company_id:
                 company_id = self.search(cr, uid, [], context=context)[0]
-            
-            # TODO check why there's a problem here!!!
-            company_proxy = self.browse(
-                cr, uid, [company_id], context=context)[0]            
+
+            # TODO check why there's a problem here!! NOW PUT direct company_id
+            company_proxy = self.browse(cr, uid, company_id, context=context)
             return company_proxy.capital_name
         except:
             return True
