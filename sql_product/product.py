@@ -116,6 +116,19 @@ class ProductProduct(orm.Model):
         #        ))
         product_pool = self.pool.get('product.product')
         accounting_pool = self.pool.get('micronaet.accounting')
+        
+        # ---------------------------------------------------------------------
+        #         UOM check if mx_link_uom module is installed:
+        # ---------------------------------------------------------------------
+        uom_pool = self.pool.get('product.uom')
+        product_uom = {}
+        try:
+            uom_ids = uom_pool.search(cr, uid, [
+                ('account_ref', '!=', False)], context=context)
+            for uom in uom_pool.browse(cr, uid, uom_ids, context=context):
+                product_uom[uom.account_ref.upper()] = uom.id
+        except:
+            pass # no product_uom population         
 
         product_translate = {} # for next translation
             
@@ -185,6 +198,17 @@ class ProductProduct(orm.Model):
                         
                     product_ids = product_pool.search(cr, uid, [
                         ('default_code', '=', default_code)])
+                    
+                    # ------------
+                    # Product UOM:
+                    # ------------
+                    uom_ref = record['CSG_UNIMIS_PRI']
+                    if uom_ref:
+                        uom_id = product_uom.get(uom_ref, False)
+                        data[uom_id] = uom_id
+                        data[uom_po_id] = uom_id
+                        data[uos_id] = uom_id
+
                     if product_ids:
                         if len(product_ids) > 1:
                             _logger.warning('Multiple article: %s (%s)' % (

@@ -316,6 +316,7 @@ class res_partner(orm.Model):
                             'vat': record['CSG_PIVA'] or False,
                             'country_id': countries.get(record[
                                 'CKY_PAESE'], False),
+                            'mexal_province': record['CDS_PROV'] or False,
                             }
 
                         # CEI setup:    
@@ -457,6 +458,7 @@ class res_partner(orm.Model):
         'sql_customer_code': fields.char('SQL customer code', size=10),
         'sql_destination_code': fields.char('SQL destination code', size=10),
         'account_CEI': fields.char('Italy, CEE, Extra CEE', size=1),
+        'mexal_province': fields.char('Prov. (tmp)', size=9), # also in base
         }
     
     _defaults = {
