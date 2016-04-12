@@ -129,6 +129,7 @@ class ProductProduct(orm.Model):
                 product_uom[uom.account_ref.upper()] = uom.id
         except:
             pass # no product_uom population         
+        # ---------------------------------------------------------------------
 
         product_translate = {} # for next translation
             
@@ -199,15 +200,6 @@ class ProductProduct(orm.Model):
                     product_ids = product_pool.search(cr, uid, [
                         ('default_code', '=', default_code)])
                     
-                    # ------------
-                    # Product UOM:
-                    # ------------
-                    uom_ref = record['CSG_UNIMIS_PRI']
-                    if uom_ref:
-                        uom_id = product_uom.get(uom_ref, False)
-                        data[uom_id] = uom_id
-                        data[uom_po_id] = uom_id
-                        data[uos_id] = uom_id
 
                     if product_ids:
                         if len(product_ids) > 1:
@@ -221,6 +213,22 @@ class ProductProduct(orm.Model):
                         product_pool.write(cr, uid, product_id, data, 
                             context=context)
                     else:
+                        # -----------------------------------------------------
+                        # Product UOM:
+                        # -----------------------------------------------------
+                        # XXX only for creation?!?:
+                        uom_ref = record['CSG_UNIMIS_PRI']
+                        if uom_ref:
+                            uom_ref = uom_ref.upper()
+                            uom_id = product_uom.get(uom_ref, False)
+                            if uom_id:
+                                data['uom_id'] = uom_id
+                                data['uom_po_id'] = uom_id
+                                #data['uos_id'] = uom_id                             
+                            else:
+                                _logger.error('No UOM ref: %s' % uom_ref)    
+                        # -----------------------------------------------------
+                        
                         product_id = product_pool.create(cr, uid, data, 
                             context=context)
                             
