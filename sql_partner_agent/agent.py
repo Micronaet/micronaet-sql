@@ -153,11 +153,14 @@ class ResPartner(orm.Model):
             if not company_proxy:
                 _logger.error('Company parameters not setted up!')
 
+            # -----------------------------------------------------------------
             # Customer range
+            # -----------------------------------------------------------------
             from_code = company_proxy.sql_agent_from_code
             to_code =  company_proxy.sql_agent_to_code
             
-            if False and from_code and fo_code: # TODO locked part for now!!
+            # TODO locked part for now!!
+            if False and from_code and fo_code: 
                 cursor = self.pool.get('micronaet.accounting'
                     ).get_partner_agent_from_commercial_range(
                         cr, uid, from_code, to_code, context=context) 
@@ -192,19 +195,18 @@ class ResPartner(orm.Model):
                                 record['CKY_CNT'], 
                                 sys.exc_info())
                         )
-                                
                 _logger.info('All partner agent range is updated!')
             
-            # ---------------------            
-            # Create agent in ODOO:
-            # ---------------------            
+            # -----------------------------------------------------------------
+            # Create / Update agent in ODOO:
+            # -----------------------------------------------------------------
             # MySQL read agent list:
             cursor = self.pool.get(
                 'micronaet.accounting').get_partner_agent_from_commercial(
-                    cr, uid, context=None)
+                    cr, uid, context=context)
             if not cursor:
                 _logger.error(
-                    "Unable to connect, no importation partner agent!")
+                    'Unable to connect, no importation partner agent!')
                 return False
 
             i = 0
@@ -223,7 +225,7 @@ class ResPartner(orm.Model):
                         partner_proxy.write(
                             cr, uid, partner_ids, {
                                 'is_agent': True,
-                                #'sql_agent_code': agent_code,
+                                #'sql_agent_code': agent_code, << XXX supplier?
                                 #'agent_id': False, 
                                 }, context=context)
                         agent_list[agent_code] = partner_ids[0]
@@ -238,9 +240,9 @@ class ResPartner(orm.Model):
                             agent_code, 
                             sys.exc_info()))
 
-            # -----------------------------
-            # Create agent-partner in ODOO:
-            # -----------------------------
+            # -----------------------------------------------------------------
+            # Create / Update agent-partner in ODOO:
+            # -----------------------------------------------------------------
             # Link agent to product:
             cursor = self.pool.get(
                 'micronaet.accounting').get_partner_agent_linked_to_agent(
@@ -296,7 +298,6 @@ class ResPartner(orm.Model):
                             agent_code, 
                             sys.exc_info()))
                             
-            # TODO update partner - agent                 
             _logger.info('All partner agent is updated!')
 
         except:
@@ -318,7 +319,10 @@ class ResPartner(orm.Model):
             if not company_proxy:
                 _logger.error('Company parameters not setted up!')
 
+            # -----------------------------------------------------------------
             # Customer range
+            # -----------------------------------------------------------------
+            # TODO not used for now!!!!
             from_code = company_proxy.sql_agent_from_code
             to_code =  company_proxy.sql_agent_to_code
             
