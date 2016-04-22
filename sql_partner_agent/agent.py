@@ -128,6 +128,10 @@ class ResPartner(orm.Model):
         'sql_agent_code': fields.char('Agent code', size=10),
         'agent_id': fields.many2one('res.partner', 'Agent', 
             domain=[('is_agent', '=', True)]),
+            
+        # TODO move in another module:    
+        'hide_statistic': fields.boolean('Hide in statistic',
+            help='Hide in invoice statistic'),    
         }
     
     # -------------------------------------------------------------------------
