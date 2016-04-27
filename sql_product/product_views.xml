@@ -11,6 +11,19 @@
             </field>
         </field>
     </record>
+    
+    <record model="ir.ui.view" id="view_product_product_custom_search">
+        <field name="name">product.product.search</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_search_form_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                  <field name="property_account_income" /> <!--move out of here!-->
+                  <field name="statistic_category" />               
+            </field>   
+        </field>
+    </record>
+    
     <menuitem name="Product" parent="base_mssql.menu_sql_anagraphic" id="menu_sql_anagraphic_product" action="product.product_normal_action_sell" sequence="20" />
 </data>
 </openerp>
