@@ -11,6 +11,7 @@
                 <field name="is_agent" />
                 <field name="sql_agent_code" />
                 <field name="agent_id" />
+                <field name="user_agent_id" />
             </xpath>
         </field>
     </record>
