@@ -33,6 +33,7 @@
         'base',
         'product',
         'base_mssql_accounting',
+        'stock', # for stock.location.route
         ],
     'init_xml': [], 
     'data': [
