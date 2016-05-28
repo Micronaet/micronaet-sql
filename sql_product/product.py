@@ -208,6 +208,7 @@ class ProductProduct(orm.Model):
                                 len(product_ids), 
                                 ))
                         product_id = product_ids[0]
+                        del data['default_code'] # no write code (notification)
                         
                         # TODO check if lang is italian in normal creation
                         product_pool.write(cr, uid, product_id, data, 
