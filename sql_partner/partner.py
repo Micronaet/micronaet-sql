@@ -406,7 +406,7 @@ class res_partner(orm.Model):
                         if partner_ids:
                             try:
                                 partner_id = partner_ids[0]
-                                try:
+                                try: # in update fiscal position will not upd.
                                     del(data['property_account_position'])
                                 except:
                                     pass    
