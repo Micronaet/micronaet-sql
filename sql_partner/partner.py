@@ -406,6 +406,10 @@ class res_partner(orm.Model):
                         if partner_ids:
                             try:
                                 partner_id = partner_ids[0]
+                                try:
+                                    del(data['property_account_position'])
+                                except:
+                                    pass    
                                 self.write(cr, uid, partner_id, data, 
                                     context=context)
                             except:
