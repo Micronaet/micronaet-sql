@@ -1,14 +1,13 @@
-# Translation of OpenERP Server.
+# Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* base_mssql
-# <> <>, 2014.
+#	* base_mssql
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: OpenERP Server 7.0\n"
+"Project-Id-Version: Odoo Server 8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-03-12 11:08+0000\n"
-"PO-Revision-Date: 2014-03-12 12:17+0100\n"
+"POT-Creation-Date: 2017-07-27 16:23+0000\n"
+"PO-Revision-Date: 2017-07-27 16:23+0000\n"
 "Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -17,9 +16,91 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: base_mssql
+#: model:ir.ui.menu,name:base_mssql.menu_sql_anagraphic
+msgid "Anagraphic"
+msgstr "Anagrafica"
+
+#. module: base_mssql
+#: model:ir.model,name:base_mssql.model_res_company
+msgid "Companies"
+msgstr "Aziende"
+
+#. module: base_mssql
+#: code:addons/base_mssql/mssql.py:57
+#, python-format
+msgid "Connection error:"
+msgstr "Errore connessione:"
+
+#. module: base_mssql
+#: code:addons/base_mssql/mssql.py:55
+#, python-format
+msgid "Connection test:"
+msgstr "Test connessione:"
+
+#. module: base_mssql
+#: view:res.company:base_mssql.res_company_form_view
+msgid "Database"
+msgstr "Database"
+
+#. module: base_mssql
+#: view:res.company:base_mssql.res_company_form_view
+msgid "Host"
+msgstr "Nome host"
+
+#. module: base_mssql
+#: help:res.company,mssql_host:0
+msgid "Host name, IP address: 10.0.0.2 or hostname: server.example.com"
+msgstr "Nome host, Indirizzo IP: 10.0.0.2 o nome host: server.example.com"
+
+#. module: base_mssql
+#: help:res.company,mssql_port:0
+msgid "Host name, example: 1433 (form MSSQL), 3306 (for MySQL)"
+msgstr "Nome host, esempio: 1433 (per MSSQL), 3306 (per MySQL)"
+
+#. module: base_mssql
+#: help:res.company,capital_name:0
+msgid "If true the table has all the capital letter name"
+msgstr "Se spuntato le tabelle hanno tutti nomi maiuscoli"
+
+#. module: base_mssql
+#: selection:res.company,mssql_type:0
+msgid "MS SQL Server"
+msgstr "SQL Server"
+
+#. module: base_mssql
 #: field:res.company,capital_name:0
 msgid "MS SQL capital name"
 msgstr "SQL Nome tabella maiuscolo"
+
+#. module: base_mssql
+#: view:res.company:base_mssql.res_company_form_view
+msgid "MS SQL connection"
+msgstr "Connessione SQL"
+
+#. module: base_mssql
+#: field:res.company,mssql_database:0
+msgid "MS SQL server database name"
+msgstr "Nome database SQL"
+
+#. module: base_mssql
+#: field:res.company,mssql_host:0
+msgid "MS SQL server host"
+msgstr "Host server SQL"
+
+#. module: base_mssql
+#: field:res.company,mssql_password:0
+msgid "MS SQL server password"
+msgstr "SQL password server"
+
+#. module: base_mssql
+#: field:res.company,mssql_port:0
+msgid "MS SQL server port"
+msgstr "SQL porta"
+
+#. module: base_mssql
+#: field:res.company,mssql_username:0
+msgid "MS SQL server username"
+msgstr "SQL nome utente"
 
 #. module: base_mssql
 #: selection:res.company,mssql_type:0
@@ -27,19 +108,31 @@ msgid "MySQL"
 msgstr "MySQL"
 
 #. module: base_mssql
-#: field:res.company,mssql_type:0
-msgid "Type"
-msgstr "Tipo"
+#: code:addons/base_mssql/mssql.py:57
+#, python-format
+msgid "OpenERP cannot connect with SQL database using this parameters!"
+msgstr "OpenERP non riesce a collegarsi a SQL con i parametri forniti!"
 
 #. module: base_mssql
-#: view:res.company:0
-msgid "Username"
-msgstr "Nome utente"
+#: code:addons/base_mssql/mssql.py:55
+#, python-format
+msgid "OpenERP succesfully connected with SQL database using this parameters!"
+msgstr "Connessione riuscita con le credenziali fornite!"
 
 #. module: base_mssql
-#: field:res.company,mssql_port:0
-msgid "MS SQL server port"
-msgstr "SQL porta"
+#: view:res.company:base_mssql.res_company_form_view
+msgid "Password"
+msgstr "Password"
+
+#. module: base_mssql
+#: view:res.company:base_mssql.res_company_form_view
+msgid "Port"
+msgstr "Porta"
+
+#. module: base_mssql
+#: model:ir.ui.menu,name:base_mssql.menu_sql_root
+msgid "SQL"
+msgstr "SQL"
 
 #. module: base_mssql
 #: model:res.groups,name:base_mssql.group_SQL_manager
@@ -52,45 +145,19 @@ msgid "SQL / User"
 msgstr "SQL / Utente"
 
 #. module: base_mssql
-#: view:res.company:0
-msgid "Host"
-msgstr "Nome host"
+#: view:res.company:base_mssql.res_company_form_view
+msgid "Test connection"
+msgstr "Test connessione"
 
 #. module: base_mssql
-#: view:res.company:0
+#: field:res.company,mssql_type:0
+msgid "Type"
+msgstr "Tipo"
+
+#. module: base_mssql
+#: view:res.company:base_mssql.res_company_form_view
 msgid "Type of server"
 msgstr "Tipo di server"
-
-#. module: base_mssql
-#: view:res.company:0
-msgid "Password"
-msgstr "Password"
-
-#. module: base_mssql
-#: help:res.company,mssql_host:0
-msgid "Host name, IP address: 10.0.0.2 or hostname: server.example.com"
-msgstr "Nome host, Indirizzo IP: 10.0.0.2 o nome host: server.example.com"
-
-#. module: base_mssql
-#: field:res.company,mssql_password:0
-msgid "MS SQL server password"
-msgstr "SQL password server"
-
-#. module: base_mssql
-#: selection:res.company,mssql_type:0
-msgid "MS SQL Server"
-msgstr "SQL Server"
-
-#. module: base_mssql
-#: code:addons/base_mssql/mssql.py:48
-#, python-format
-msgid "Connection test:"
-msgstr "Test connessione:"
-
-#. module: base_mssql
-#: view:res.company:0
-msgid "Database"
-msgstr "Database"
 
 #. module: base_mssql
 #: help:res.company,mssql_username:0
@@ -98,74 +165,7 @@ msgid "User name, example: sa or root"
 msgstr "Nome utente, esempio: sa o root"
 
 #. module: base_mssql
-#: model:ir.ui.menu,name:base_mssql.menu_sql_root
-msgid "SQL"
-msgstr "SQL"
+#: view:res.company:base_mssql.res_company_form_view
+msgid "Username"
+msgstr "Nome utente"
 
-#. module: base_mssql
-#: model:ir.model,name:base_mssql.model_res_company
-msgid "Companies"
-msgstr "Aziende"
-
-#. module: base_mssql
-#: help:res.company,mssql_port:0
-msgid "Host name, example: 1433 (form MSSQL), 3306 (for MySQL)"
-msgstr "Nome host, esempio: 1433 (per MSSQL), 3306 (per MySQL)"
-
-#. module: base_mssql
-#: code:addons/base_mssql/mssql.py:48
-#, python-format
-msgid "OpenERP succesfully connected with SQL database using this parameters!"
-msgstr "Connessione riuscita con le credenziali fornite!"
-
-#. module: base_mssql
-#: field:res.company,mssql_host:0
-msgid "MS SQL server host"
-msgstr "Host server SQL"
-
-#. module: base_mssql
-#: model:ir.ui.menu,name:base_mssql.menu_sql_anagraphic
-msgid "Anagraphic"
-msgstr "Anagrafica"
-
-#. module: base_mssql
-#: code:addons/base_mssql/mssql.py:50
-#, python-format
-msgid "Connection error:"
-msgstr "Errore connessione:"
-
-#. module: base_mssql
-#: help:res.company,capital_name:0
-msgid "If true the table has all the capital letter name"
-msgstr "Se spuntato le tabelle hanno tutti nomi maiuscoli"
-
-#. module: base_mssql
-#: view:res.company:0
-msgid "MS SQL connection"
-msgstr "Connessione SQL"
-
-#. module: base_mssql
-#: field:res.company,mssql_database:0
-msgid "MS SQL server database name"
-msgstr "Nome database SQL"
-
-#. module: base_mssql
-#: code:addons/base_mssql/mssql.py:50
-#, python-format
-msgid "OpenERP cannot connect with SQL database using this parameters!"
-msgstr "OpenERP non riesce a collegarsi a SQL con i parametri forniti!"
-
-#. module: base_mssql
-#: field:res.company,mssql_username:0
-msgid "MS SQL server username"
-msgstr "SQL nome utente"
-
-#. module: base_mssql
-#: view:res.company:0
-msgid "Test connection"
-msgstr "Test connessione"
-
-#. module: base_mssql
-#: view:res.company:0
-msgid "Port"
-msgstr "Porta"

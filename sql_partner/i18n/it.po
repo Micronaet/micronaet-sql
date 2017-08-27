@@ -1,35 +1,21 @@
-# Translation of OpenERP Server.
+# Translation of Odoo Server.
 # This file contains the translation of the following modules:
 # 	* sql_partner
-# <> <>, 2014.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: OpenERP Server 7.0\n"
+"Project-Id-Version: Odoo Server 8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-03-12 11:39+0000\n"
-"PO-Revision-Date: 2014-05-21 14:45+0200\n"
+"POT-Creation-Date: 2017-07-27 16:32+0000\n"
+"PO-Revision-Date: 2017-08-04 14:10+0100\n"
 "Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: \n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: \n"
-
-#. module: sql_partner
-#: view:res.company:0
-msgid "SQL partner"
-msgstr "SQL: partner"
-
-#. module: sql_partner
-#: field:res.company,sql_supplier_from_code:0
-msgid "SQL supplier from code >="
-msgstr "SQL fornitore dal codice >="
-
-#. module: sql_partner
-#: field:res.company,sql_customer_from_code:0
-msgid "SQL customer from code >="
-msgstr "SQL cliente dal codice >="
+"Language: it\n"
+"X-Generator: Poedit 1.6.10\n"
 
 #. module: sql_partner
 #: model:ir.model,name:sql_partner.model_res_company
@@ -37,29 +23,14 @@ msgid "Companies"
 msgstr "Aziende"
 
 #. module: sql_partner
-#: field:res.company,sql_destination_from_code:0
-msgid "SQL destination from code >="
-msgstr "SQL destinazione dal codice >="
+#: model:ir.model,name:sql_partner.model_account_fiscal_position
+msgid "Fiscal Position"
+msgstr "Posizione fiscale"
 
 #. module: sql_partner
-#: field:res.partner,sql_import:0
-msgid "SQL import"
-msgstr "SQL: importazione"
-
-#. module: sql_partner
-#: field:res.partner,sql_customer_code:0
-msgid "SQL cusromer code"
-msgstr "SQL: codice cliente"
-
-#. module: sql_partner
-#: field:res.partner,sql_destination_code:0
-msgid "SQL destination code"
-msgstr "SQL: codice destinazione"
-
-#. module: sql_partner
-#: field:res.company,sql_supplier_to_code:0
-msgid "SQL supplier from code <"
-msgstr "SQL fornitore dal codice <"
+#: field:account.fiscal.position,account_CEI:0 field:res.partner,account_CEI:0
+msgid "Italy, CEE, Extra CEE"
+msgstr "Italy, CEE, Extra CEE"
 
 #. module: sql_partner
 #: model:ir.model,name:sql_partner.model_res_partner
@@ -68,16 +39,56 @@ msgid "Partner"
 msgstr "Partner"
 
 #. module: sql_partner
-#: field:res.partner,sql_supplier_code:0
-msgid "SQL supplier code"
-msgstr "SQL: codice fornitore"
-
-#. module: sql_partner
-#: field:res.company,sql_destination_to_code:0
-msgid "SQL destination from code <"
-msgstr "SQL destinazione dal codice <"
+#: field:res.partner,sql_customer_code:0
+msgid "SQL customer code"
+msgstr "Codice clente"
 
 #. module: sql_partner
 #: field:res.company,sql_customer_to_code:0
 msgid "SQL customer from code <"
-msgstr "SQL cliente dal codice <"
+msgstr "Cliente dal codice <"
+
+#. module: sql_partner
+#: field:res.company,sql_customer_from_code:0
+msgid "SQL customer from code >="
+msgstr "Cliente dal codice >="
+
+#. module: sql_partner
+#: field:res.partner,sql_destination_code:0
+msgid "SQL destination code"
+msgstr "Codice destinazione"
+
+#. module: sql_partner
+#: field:res.company,sql_destination_to_code:0
+msgid "SQL destination from code <"
+msgstr "Destinazione dal codice <"
+
+#. module: sql_partner
+#: field:res.company,sql_destination_from_code:0
+msgid "SQL destination from code >="
+msgstr "Destinazione dal codice >="
+
+#. module: sql_partner
+#: field:res.partner,sql_import:0
+msgid "SQL import"
+msgstr "Importazione SQL"
+
+#. module: sql_partner
+#: view:res.company:sql_partner.res_company_form_view_customize
+msgid "SQL partner"
+msgstr "Partner"
+
+#. module: sql_partner
+#: field:res.partner,sql_supplier_code:0
+msgid "SQL supplier code"
+msgstr "Codice fornitore"
+
+#. module: sql_partner
+#: field:res.company,sql_supplier_to_code:0
+msgid "SQL supplier from code <"
+msgstr "Fornitore al codice <"
+
+#. module: sql_partner
+#: field:res.company,sql_supplier_from_code:0
+msgid "SQL supplier from code >="
+msgstr "Fornitore dal codice >="

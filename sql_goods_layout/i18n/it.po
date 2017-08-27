@@ -1,0 +1,33 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* sql_goods_layout
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 8.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-27 16:32+0000\n"
+"PO-Revision-Date: 2017-08-04 14:05+0100\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: \n"
+"Language: it\n"
+"X-Generator: Poedit 1.6.10\n"
+
+#. module: sql_goods_layout
+#: model:ir.model,name:sql_goods_layout.model_stock_picking_goods_description
+msgid "Description of Goods"
+msgstr "Aspetto dei beni"
+
+#. module: sql_goods_layout
+#: model:ir.model,name:sql_goods_layout.model_micronaet_accounting
+msgid "Micronaet accounting"
+msgstr "Contabilità Micronaet"
+
+#. module: sql_goods_layout
+#: field:stock.picking.goods_description,import_id:0
+msgid "SQL import"
+msgstr "Importato da SQL"

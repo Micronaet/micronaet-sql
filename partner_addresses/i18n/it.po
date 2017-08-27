@@ -1,29 +1,36 @@
-# Translation of OpenERP Server.
+# Translation of Odoo Server.
 # This file contains the translation of the following modules:
 #	* partner_addresses
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: OpenERP Server 7.0\n"
+"Project-Id-Version: Odoo Server 8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-16 16:16+0000\n"
-"PO-Revision-Date: 2013-02-16 17:17+0100\n"
-"Last-Translator: Davide Corio <davide.corio@agilebg.com>\n"
+"POT-Creation-Date: 2017-07-27 16:28+0000\n"
+"PO-Revision-Date: 2017-07-27 16:28+0000\n"
+"Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
 
 #. module: partner_addresses
-#: model:ir.model,name:partner_addresses.model_res_partner
-msgid "Partner"
-msgstr "Partner"
+#: view:res.partner:partner_addresses.view_partner_filter_address
+#: view:res.partner:partner_addresses.view_partner_form_address
+#: field:res.partner,address_ids:0
+msgid "Addresses"
+msgstr "Indirizzi"
 
 #. module: partner_addresses
-#: view:res.partner:0
-msgid "Is an Address?"
-msgstr "E' un indirizzo?"
+#: view:res.partner:partner_addresses.view_partner_form_address
+msgid "Company"
+msgstr "Azienda"
+
+#. module: partner_addresses
+#: view:res.partner:partner_addresses.view_partner_form_address
+msgid "Contact Person"
+msgstr "Contatto"
 
 #. module: partner_addresses
 #: field:res.partner,is_address:0
@@ -31,13 +38,12 @@ msgid "Is an Address"
 msgstr "E' un indirizzo"
 
 #. module: partner_addresses
-#: view:res.partner:0
-#: field:res.partner,address_ids:0
-msgid "Addresses"
-msgstr "Indirizzi"
+#: view:res.partner:partner_addresses.view_partner_form_address
+msgid "Is an Address?"
+msgstr "E' un indirizzo?"
 
 #. module: partner_addresses
-#: view:res.partner:0
-msgid "Contact Person"
-msgstr "Contatto"
+#: model:ir.model,name:partner_addresses.model_res_partner
+msgid "Partner"
+msgstr "Partner"
 
