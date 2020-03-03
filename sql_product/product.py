@@ -191,11 +191,12 @@ class ProductProduct(orm.Model):
                     if manufacture and record[
                             'NKY_STRUTT_ART'] in to_manufacture:
                         data['route_ids'] = manufacture
-                        
-                    if accounting_pool.is_active(record):
-                        data['state'] = 'sellable'
-                    else:
-                        data['state'] = 'obsolete'
+                     
+                    # 03 mar 2020 Remove because Account not the master data:
+                    #if accounting_pool.is_active(record):
+                    #    data['state'] = 'sellable'
+                    #else:
+                    #    data['state'] = 'obsolete'
                         
                     product_ids = product_pool.search(cr, uid, [
                         ('default_code', '=', default_code)])
