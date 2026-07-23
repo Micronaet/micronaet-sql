@@ -321,7 +321,7 @@ class SaleOrderSql(orm.Model):
         if delete:
             order_ids = self.search(cr, uid, [
                 ('accounting_order', '=', True),
-                ('accounting_state', 'not in', ('close')), # TODO used??
+                ('accounting_state', 'not in', ('close', )), # TODO used??
                 ], context=context)
         if update:        
             updated_ids = []

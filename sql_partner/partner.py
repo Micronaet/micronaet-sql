@@ -204,7 +204,7 @@ class res_partner(orm.Model):
             company_proxy = company_pool.get_from_to_dict(
                 cr, uid, context=context)
             if not company_proxy:
-                _logger.error('Company parameters not setted up!')
+                _logger.error('Company parameters not set up!')
 
             import_loop = [
                 (1,                                     # order
@@ -245,7 +245,7 @@ class res_partner(orm.Model):
             # -----------------------------------------------------------------
             # Add parent for destination in required:
             # -----------------------------------------------------------------
-            # For link destination speedly:
+            # For link destination fastly:
             parents = {}
             destination_parents = {}                 
             if address_link:
@@ -260,8 +260,7 @@ class res_partner(orm.Model):
 
             for order, key_field, from_code, to_code, block in import_loop:
                 # If same from/to code or jump function enabled
-                if (only_block and only_block != block) or (
-                        from_code == to_code):
+                if (only_block and only_block != block) or (from_code == to_code):
                     _logger.warning("Jump block: %s!" % block)
                     continue
 
@@ -276,14 +275,12 @@ class res_partner(orm.Model):
                     _logger.error("Unable to connect, no partner!")
                     continue # next block
 
-                _logger.info('Start import %s from: %s to: %s' % (
-                    block, from_code, to_code))                          
+                _logger.info('Start import %s from: %s to: %s' % (block, from_code, to_code))
                 i = 0
                 for record in cursor:
                     i += 1
                     if verbose_log_count and i % verbose_log_count == 0:
-                        _logger.info('%s: %s record imported / updated!' % (
-                            block, i))                       
+                        _logger.info('%s: %s record imported / updated!' % (block, i))
                         
                     try:
                         ref = record['CKY_CNT']
@@ -297,7 +294,7 @@ class res_partner(orm.Model):
                         if 'destination' in block and (
                                 ref not in destination_parents): 
                             if block == 'destination':    
-                                _logger.error('Dest. without parent %s' % key)
+                                _logger.error('Dest. without parent %s' % ref)
                             continue
 
                         data = {
@@ -314,8 +311,7 @@ class res_partner(orm.Model):
                             #'mobile': record['CDS_INDIR'] or False,
                             'website': record['CDS_URL_INET'] or False,
                             'vat': record['CSG_PIVA'] or False,
-                            'country_id': countries.get(record[
-                                'CKY_PAESE'], False),
+                            'country_id': countries.get(record['CKY_PAESE'], False),
                             'mexal_province': record['CDS_PROV'] or False,
                             }
 
@@ -324,8 +320,7 @@ class res_partner(orm.Model):
                             account_CEI = record['IST_NAZ'].upper()
                             data['account_CEI'] = account_CEI
                             if account_CEI in fiscal_positions:
-                                data['property_account_position'] = \
-                                    fiscal_positions[account_CEI]
+                                data['property_account_position'] = fiscal_positions[account_CEI]
 
                             # Set lang if requesta and account_CEI is set    
                             if set_lang and account_CEI:
@@ -415,8 +410,7 @@ class res_partner(orm.Model):
                             except:
                                 del(data['vat'])
                                 try: # Remove vat for vat check problems:
-                                    self.write(cr, uid, partner_id, data, 
-                                        context=context)
+                                    self.write(cr, uid, partner_id, data, context=context)
                                 except:    
                                     _logger.error(
                                         '%s. Error update partner [%s]: %s' % (
@@ -424,17 +418,14 @@ class res_partner(orm.Model):
                                     continue
                         else:
                             try:
-                                partner_id = self.create(
-                                    cr, uid, data, context=context)
+                                partner_id = self.create(cr, uid, data, context=context)
                             except:
                                 del(data['vat'])
                                 try: # Remove vat for vat check problems:
-                                    partner_id = self.create(cr, uid, data, 
-                                        context=context)
+                                    partner_id = self.create(cr, uid, data, context=context)
                                 except:    
                                     _logger.error(
-                                        '%s. Error create partner [%s]: %s' % (
-                                            i, partner_id, sys.exc_info()))
+                                        '%s. Error create partner [%s]: %s' % (i, partner_id, sys.exc_info()))
                                     continue
 
                         # Save referente for destination:
@@ -443,8 +434,7 @@ class res_partner(orm.Model):
 
                     except:
                         _logger.error(
-                            'Error importing partner [%s], jumped: %s' % (
-                                ref, sys.exc_info()))
+                            'Error importing partner [%s], jumped: %s' % (ref, sys.exc_info()))
                                             
                 _logger.info('All %s is updated!' % block)
         except:
@@ -468,5 +458,3 @@ class res_partner(orm.Model):
     _defaults = {
         'sql_import': lambda *a: False,
         }
-
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
